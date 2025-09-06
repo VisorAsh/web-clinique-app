@@ -75,11 +75,11 @@ const Partners: React.FC = () => {
                             <CarouselContent>
                                 {partners.map((partner, index) => (
                                     <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/4">
-                                        <div className="flex justify-center items-center p-4 h-24">
+                                        <div className="flex justify-center items-center p-4">
                                             <img
                                                 src={partner.src}
                                                 alt={partner.alt}
-                                                className="max-w-full max-h-40 object-contain transition-all duration-300 hover:scale-110"
+                                                className="max-w-full max-h-24 object-contain transition-all duration-300 hover:scale-110"
                                                 // grayscale hover:grayscale-0
                                             />
                                         </div>

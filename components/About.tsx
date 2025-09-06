@@ -8,12 +8,12 @@ export default function About() {
             {/* Col gauche : 2 images */}
             <div className="space-y-4">
               <img
-                src="/imgs/d7a94382a75116bb2ab5d1a5204b28.png"
+                src="/imgs/illustration4.png"
                 alt="Clinique"
                 className="w-full h-auto rounded-lg shadow-md"
               />
               <img
-                src="/imgs/CMA180109_MCB_TRAINING_LIMBE_WHO_CHECKLIST_OR_ST001-1500x1000-1.jpg"
+                src="/imgs/illustration.jpg"
                 alt="Clinique"
                 className="w-full h-auto rounded-lg shadow-md"
               />
@@ -38,7 +38,7 @@ export default function About() {
               </p>
               <a
                 href="/services"
-                className="inline-flex items-center bg-blue-600 text-white font-medium px-6 py-3 rounded-full shadow hover:bg-blue-700 transition"
+                className="inline-flex items-center bg-blue-600 text-white font-medium px-6 py-3 rounded-md shadow hover:bg-blue-700 transition"
               >
                 Services
                 <svg

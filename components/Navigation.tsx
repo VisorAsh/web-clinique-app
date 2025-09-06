@@ -26,7 +26,7 @@ export default function Navigation() {
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             <div className="ml-3 relative">
               <div>
-                <button className="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button className="bg-white rounded-md flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                   <span className="sr-only">Open user menu</span>
                   <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
                     U

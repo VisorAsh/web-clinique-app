@@ -15,7 +15,7 @@ Une application web pour la gestion d'une clinique.
 git clone https://github.com/votre-utilisateur/clinique-app-web.git
 cd clinique-app-web
 npm install
-npm start
+npm run dev
 ```
 
 ## Technologies
