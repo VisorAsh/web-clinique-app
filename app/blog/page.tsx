@@ -48,20 +48,22 @@ export default async function ArticlesPage() {
             {/* Header */}
             <Header liste_coordonnee={liste_coordonnee} />
 
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink href="/">Accueil</BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>Blog</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+            <div className="mt-8 px-4 md:px-8 lg:px-56">
+                <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                            <BreadcrumbLink href="/">Accueil</BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbPage>Blog</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            </div>
 
             {/* Contenu principal */}
-            <div className="container mx-auto py-16 px-4">
+            <div className="container mx-auto py-8 px-4 mb-12">
                 {/* Filtrer et trier (optionnel) */}
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-12 p-6 bg-gray-50 rounded-xl">
                     <div className="text-sm text-gray-600 mb-4 sm:mb-0">
@@ -105,7 +107,7 @@ export default async function ArticlesPage() {
                 )}
 
                 {/* Pagination (optionnel) */}
-                {articles.length > 0 && (
+                {/* {articles.length > 0 && (
                     <div className="flex justify-center mt-16">
                         <nav className="flex items-center space-x-2">
                             <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors duration-300">
@@ -129,7 +131,7 @@ export default async function ArticlesPage() {
                             </button>
                         </nav>
                     </div>
-                )}
+                )} */}
             </div>
 
             <Footer

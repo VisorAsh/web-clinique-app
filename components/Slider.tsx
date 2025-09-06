@@ -4,9 +4,9 @@ import { Card, CardContent } from "../components/ui/card";
 
 export default function Slider() {
     return (
-        <section className="relative mb-72">
+        <section className="relative md:mb-72">
             {/* Banner avec image et overlay */}
-            <div className="relative w-full h-[80vh] flex items-center justify-center">
+            <div className="relative w-full h-[60vh] md:h-[80vh] flex items-center justify-center">
                 <img
                     src="../imgs/banner.jpg"
                     alt="Clinique Banner"
@@ -18,25 +18,25 @@ export default function Slider() {
 
                 {/* Texte centré */}
                 <div className="relative z-10 text-center text-white px-4 max-w-3xl">
-                    <p className="uppercase tracking-wider text-sm mb-3">
+                    <p className="uppercase tracking-wider text-xs md:text-sm mb-2 md:mb-3">
                         SOLUTION DE SOINS DE SANTÉ GLOBALE
                     </p>
-                    <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6">
                         Votre Partenaire De Santé Le Plus Fiable
                     </h1>
-                    <p className="mb-8 text-lg">
+                    <p className="mb-6 md:mb-8 text-base md:text-lg">
                         Nous comprenons l&apos;importance de choisir un établissement médical de
                         confiance, où vous vous sentez à l&apos;aise et en sécurité. C&apos;est pourquoi
                         nous nous engageons à fournir des soins de la plus haute qualité, avec une
                         équipe médicale expérimentée et attentionnée.
                     </p>
                     <a
-                        href="#rdv"
-                        className="bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-full font-medium inline-flex items-center"
+                        href="#appointment"
+                        className="bg-white text-blue-700 hover:bg-blue-50 px-4 md:px-6 py-2 md:py-3 rounded-md font-medium inline-flex items-center text-sm md:text-base"
                     >
-                        Programmer un RDV
-                        <svg
-                            className="ml-2 w-5 h-5"
+                        Programmer un rendez-vous
+                        {/* <svg
+                            className="ml-2 w-4 h-4 md:w-5 md:h-5"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -48,21 +48,20 @@ export default function Slider() {
                                 strokeWidth="2"
                                 d="M14 5l7 7m0 0l-7 7m7-7H3"
                             ></path>
-                        </svg>
+                        </svg> */}
                     </a>
                 </div>
             </div>
 
-
             {/* Cards positionnées en bas de la bannière */}
-            <div className="absolute inset-x-0 -bottom-56 px-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <div className="mt-8 md:mt-0 md:absolute md:inset-x-0 md:-bottom-56 px-2 md:px-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-6xl mx-auto">
                     {/* Card 1 */}
                     <Card className="shadow-xl">
-                        <CardContent className="p-8 text-center">
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CardContent className="p-6 md:p-8 text-center">
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
                                 <svg
-                                    className="w-8 h-8 text-blue-600"
+                                    className="w-6 h-6 md:w-8 md:h-8 text-blue-600"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -75,26 +74,26 @@ export default function Slider() {
                                     ></path>
                                 </svg>
                             </div>
-                            <h4 className="text-xl font-bold mb-4">Services 24/24</h4>
-                            <p className="text-gray-600 mb-6">
+                            <h4 className="text-lg md:text-xl font-bold mb-2 md:mb-4">Services 24/24</h4>
+                            <p className="text-gray-600 mb-4 md:mb-6 text-sm md:text-base">
                                 Obtenez un soutien à tout moment pour toute urgence. Nous avons
                                 introduit le principe de la médecine familiale.
                             </p>
                             <a
-                                href="#rdv"
-                                className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded-full font-medium inline-block"
+                                href="#appointment"
+                                className="bg-blue-600 text-white hover:bg-blue-700 px-4 md:px-6 py-2 rounded-md font-medium inline-block text-sm md:text-base"
                             >
-                                Programmer un RDV
+                                Programmer un rendez-vous
                             </a>
                         </CardContent>
                     </Card>
 
                     {/* Card 2 */}
                     <Card className="shadow-xl">
-                        <CardContent className="p-8 text-center">
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CardContent className="p-6 md:p-8 text-center">
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
                                 <svg
-                                    className="w-8 h-8 text-blue-600"
+                                    className="w-6 h-6 md:w-8 md:h-8 text-blue-600"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -107,15 +106,15 @@ export default function Slider() {
                                     ></path>
                                 </svg>
                             </div>
-                            <h4 className="text-xl font-bold mb-4">Heure de travail</h4>
-                            <ul className="text-left space-y-2 mb-6 text-gray-600">
-                                <li className="flex justify-between">
+                            <h4 className="text-lg md:text-xl font-bold mb-2 md:mb-4">Heure de travail</h4>
+                            <ul className="text-left space-y-1 md:space-y-2 mb-4 md:mb-6 text-gray-600 text-sm md:text-base">
+                                <li className="flex justify-center gap-4">
                                     <span>Dim - Mer :</span> <span className="font-medium">8:00 - 17:00</span>
                                 </li>
-                                <li className="flex justify-between">
+                                <li className="flex justify-center gap-4">
                                     <span>Jeu - Ven :</span> <span className="font-medium">9:00 - 17:00</span>
                                 </li>
-                                <li className="flex justify-between">
+                                <li className="flex justify-center gap-4">
                                     <span>Sam - Dim :</span> <span className="font-medium">10:00 - 17:00</span>
                                 </li>
                             </ul>
@@ -124,10 +123,10 @@ export default function Slider() {
 
                     {/* Card 3 */}
                     <Card className="shadow-xl">
-                        <CardContent className="p-8 text-center">
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CardContent className="p-6 md:p-8 text-center">
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
                                 <svg
-                                    className="w-8 h-8 text-blue-600"
+                                    className="w-6 h-6 md:w-8 md:h-8 text-blue-600"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -140,12 +139,12 @@ export default function Slider() {
                                     ></path>
                                 </svg>
                             </div>
-                            <h4 className="text-xl font-bold mb-4">Cas d&apos;urgence</h4>
-                            <p className="text-gray-600">
+                            <h4 className="text-lg md:text-xl font-bold mb-2 md:mb-4">Cas d&apos;urgence</h4>
+                            <p className="text-gray-600 text-sm md:text-base">
                                 Obtenez un soutien à tout moment pour toute urgence. Nous avons
                                 introduit le principe de la médecine familiale.
                             </p>
-                            <p className="text-blue-600 font-bold mt-4">1-800-700-6200</p>
+                            <p className="text-blue-600 font-bold mt-2 md:mt-4 text-base md:text-lg">+228 90 81 07 44</p>
                         </CardContent>
                     </Card>
                 </div>

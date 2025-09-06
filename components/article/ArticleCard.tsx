@@ -1,6 +1,5 @@
-import { Article } from "@/lib/api/fetchData";
-import Image from "next/image";
 import Link from "next/link";
+import { Article } from "@/lib/api/fetchData";
 
 // components/article/ArticleCard.tsx
 const ArticleCard = ({ article, compact = false }: {
@@ -19,15 +18,15 @@ const ArticleCard = ({ article, compact = false }: {
 
     return (
         <Link
-            href={`/articles/${article.slug}`}
+            href={`/blog/${article.slug}`}
             className={`block border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 ${compact ? '' : 'h-full'}`}
         >
             <div className="relative aspect-video">
-                <Image
+                <img
                     src={article.imageUrl}
                     alt={article.title}
-                    fill
-                    className="object-cover"
+                    // fill
+                    className="object-cover h-[300px] w-full"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
             </div>

@@ -37,11 +37,11 @@ export default function About() {
                 Nous fournissons les meilleurs services médicaux de premier plan.
               </p>
               <a
-                href="/services"
-                className="inline-flex items-center bg-blue-600 text-white font-medium px-6 py-3 rounded-full shadow hover:bg-blue-700 transition"
+                href="#services"
+                className="inline-flex items-center bg-blue-600 text-white font-medium px-6 py-3 rounded-md shadow hover:bg-blue-700 transition"
               >
                 Services
-                <svg
+                {/* <svg
                   className="ml-3 w-5 h-5"
                   fill="none"
                   stroke="currentColor"
@@ -54,7 +54,7 @@ export default function About() {
                     strokeWidth="2"
                     d="M9 5l7 7-7 7"
                   />
-                </svg>
+                </svg> */}
               </a>
             </div>
           </div>

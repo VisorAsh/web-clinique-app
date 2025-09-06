@@ -79,7 +79,7 @@ const Partners: React.FC = () => {
                                             <img
                                                 src={partner.src}
                                                 alt={partner.alt}
-                                                className="max-w-full max-h-40 object-contain transition-all duration-300 hover:scale-110"
+                                                className="max-w-full max-h-28 object-contain transition-all duration-300 hover:scale-110"
                                                 // grayscale hover:grayscale-0
                                             />
                                         </div>
