@@ -40,7 +40,7 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-[#f7f8fa] p-8">
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
