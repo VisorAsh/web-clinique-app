@@ -87,7 +87,7 @@ export default function Footer({ liste_coordonnee, liste_departements }: FooterP
                 </div>
               </div>
               
-              <Link href="/auth/login" className="text-blue-600 hover:text-blue-800 font-medium">Se connecter</Link>
+              <Link href="/login" className="text-blue-600 hover:text-blue-800 font-medium">Se connecter</Link>
             </div>
           ))}
         </div>
@@ -95,7 +95,7 @@ export default function Footer({ liste_coordonnee, liste_departements }: FooterP
         <div className="border-t border-gray-200 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-600 text-sm mb-4 md:mb-0">
-              &copy; Tous droits réservés à la <span className="text-blue-600">Clinique de Totsi</span>.
+              &copy; Tous droits réservés à <span className="text-blue-600">Clinique</span> de <a href="#" className="text-blue-600 hover:text-blue-800">Totsi</a>
             </div>
             <a href="#" className="text-white p-4 hover:p-5 text-center flex items-center rounded-full bg-blue-600 justify-center transition-all duration-300">
               {/* Retour en haut */}

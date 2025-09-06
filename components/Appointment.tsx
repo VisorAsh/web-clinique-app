@@ -124,7 +124,7 @@ const Appointment: React.FC = () => {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold px-8 py-3 rounded-md transition duration-300 flex items-center cursor-pointer"
+                                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold px-8 py-3 rounded-full transition duration-300 flex items-center cursor-pointer"
                                 >
                                     {isSubmitting ? 'Envoi...' : 'Soumettre'}
                                     <i className="icofont-simple-right ml-2"></i>

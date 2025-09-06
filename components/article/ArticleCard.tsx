@@ -19,15 +19,15 @@ const ArticleCard = ({ article, compact = false }: {
 
     return (
         <Link
-            href={`/blog/${article.slug}`}
+            href={`/articles/${article.slug}`}
             className={`block border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 ${compact ? '' : 'h-full'}`}
         >
             <div className="relative aspect-video">
-                <img
+                <Image
                     src={article.imageUrl}
                     alt={article.title}
-                    // fill
-                    className="object-cover h-[300px] w-full"
+                    fill
+                    className="object-cover"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
             </div>
