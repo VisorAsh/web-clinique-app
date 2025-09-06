@@ -3,6 +3,14 @@ import ArticleContent from '../../../components/article/ArticleContent';
 import { notFound } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 interface BlogPageProps {
     liste_coordonnee: Array<{
@@ -69,6 +77,23 @@ const ArticlePage = async ({ params }: { params: Promise<{ slug: string }> }) =>
     return (
         <>
             <Header liste_coordonnee={liste_coordonnee} />
+
+            <Breadcrumb>
+                <BreadcrumbList>
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/">Accueil</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/blog">Blog</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage>{article.title}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
+
             <article className="container mx-auto py-20 max-w-3xl px-4 md:px-0">
                 <header className="mb-8">
                     {article.category && (

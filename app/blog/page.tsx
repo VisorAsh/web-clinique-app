@@ -3,6 +3,14 @@ import ArticleCard from "../../components/article/ArticleCard";
 import Link from 'next/link';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 interface BlogPageProps {
     liste_coordonnee: Array<{
@@ -39,6 +47,18 @@ export default async function ArticlesPage() {
         <main className="min-h-screen bg-white">
             {/* Header */}
             <Header liste_coordonnee={liste_coordonnee} />
+
+            <Breadcrumb>
+                <BreadcrumbList>
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/">Accueil</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage>Blog</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
 
             {/* Contenu principal */}
             <div className="container mx-auto py-16 px-4">

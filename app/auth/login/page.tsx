@@ -23,15 +23,25 @@ export default function Login() {
         setError("");
         try {
             console.log("Données de connexion : ", { email, password });
-            // const res = await fetch(`${process.env.API_URL}/login`, {
-            //     method: "POST",
-            //     headers: { "Content-Type": "application/json" },
-            //     body: JSON.stringify({ email, password }),
-            // });
-            // if (!res.ok) {
-            //     throw new Error("Identifiants invalides");
-            // }
-            // Rediriger ou gérer la connexion ici
+            const res = await fetch(`${process.env.API_URL}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.message || "Identifiants invalides");
+            }
+
+            console.log("Response de l'API : ", res);
+            const data = await res.json();
+
+            console.log("Données reçues : ", data);
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+
+            // Rediriger vers la page de tableau de bord
+            window.location.href = "/dashboard";
         } catch (err: any) {
             setError(err.message || "Erreur lors de la connexion");
         } finally {
