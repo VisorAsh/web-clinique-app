@@ -86,3 +86,14 @@
 //         </div>
 //     );
 // }
+
+export default function Dashboard() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+            <div className="text-center">
+                <h1 className="text-3xl font-bold mb-4">Tableau de bord</h1>
+                <p className="text-gray-600">Cette fonctionnalité sera bientôt disponible. Restez à l'écoute !</p>
+            </div>
+        </div>
+    );
+}
