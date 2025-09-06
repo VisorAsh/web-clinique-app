@@ -1,0 +1,99 @@
+import { getArticleBySlug } from '@/lib/api/fetchData';
+import ArticleContent from '../../../components/article/ArticleContent';
+import { notFound } from 'next/navigation';
+
+// Génération des métadonnées
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+    const article = await getArticleBySlug(slug);
+
+    if (!article) {
+        return {
+            title: 'Article non trouvé',
+        };
+    }
+
+    return {
+        title: article.title,
+        description: article.excerpt || article.content.substring(0, 160),
+        openGraph: {
+            title: article.title,
+            description: article.excerpt || article.content.substring(0, 160),
+            images: article.imageUrl ? [article.imageUrl] : [],
+        },
+    };
+}
+
+const ArticlePage = async ({ params }: { params: Promise<{ slug: string }> }) => {
+    // On await les params
+    const { slug } = await params;
+
+    // On await les données de l'article
+    const article = await getArticleBySlug(slug);
+
+    console.log("Article à charger :", article);
+
+    // Si l'article n'existe pas, on retourne une 404
+    if (!article) {
+        notFound();
+    }
+
+    return (
+        <article className="container mx-auto py-8 max-w-3xl">
+            <header className="mb-8">
+                {article.category && (
+                    <span className="inline-block px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded-md mb-4">
+                        {article.category}
+                    </span>
+                )}
+
+                <h1 className="text-3xl md:text-4xl font-bold my-4 text-gray-900">
+                    {article.title}
+                </h1>
+
+                <div className="flex items-center text-gray-600 text-sm">
+                    <span>Par {article.author}</span>
+                    <span className="mx-2">•</span>
+                    <span>
+                        {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('fr-FR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        }) : 'Date non disponible'}
+                    </span>
+                </div>
+            </header>
+
+            {/* Image principale */}
+            {article.imageUrl && (
+                <div className="relative w-full h-64 md:h-96 mb-8">
+                    <img
+                        src={article.imageUrl}
+                        alt={article.title}
+                        className="w-full h-full object-cover rounded-lg"
+                    />
+                </div>
+            )}
+
+            {/* Contenu de l'article */}
+            <div className="prose prose-lg max-w-none">
+                {article.content ? (
+                    <ArticleContent content={article.content} />
+                ) : (
+                    <p className="text-gray-500">Contenu non disponible.</p>
+                )}
+            </div>
+
+            {/* Partage social */}
+            {/* <SocialShare
+                title={article.title}
+                url={`/articles/${article.slug}`}
+                className="mt-8 border-t pt-6"
+            /> */}
+
+            {/* Articles similaires pourrait être ajouté ici */}
+        </article>
+    );
+}
+
+export default ArticlePage;
