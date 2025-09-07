@@ -25,8 +25,8 @@ interface BlogPageProps {
 }
 
 // Génération des métadonnées
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-    const { slug } = params;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
     const article = await getArticleBySlug(slug);
 
     if (!article) {
@@ -46,9 +46,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     };
 }
 
-const ArticlePage = async ({ params }: { params: { slug: string } }) => {
+const ArticlePage = async ({ params }: { params: Promise<{ slug: string }> }) => {
     // On await les params
-    const { slug } = params;
+    const { slug } = await params;
 
     // On await les données de l'article
     const article = await getArticleBySlug(slug);
