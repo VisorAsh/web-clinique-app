@@ -75,7 +75,7 @@ export function getLatestArticles(limit: number = 6): Article[] {
 }
 
 // Fonction pour récupérer un article par son slug
-export function getArticleBySlug(slug: string): Article | undefined {
+export async function getArticleBySlug(slug: string): Promise<Article | undefined> {
   return articles.find(article => article.slug === slug);
 }
 
