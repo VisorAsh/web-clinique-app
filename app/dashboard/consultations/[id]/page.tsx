@@ -1,51 +1,172 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, User, Stethoscope, FileText, Pill, AlertCircle, Clock, Ruler, Thermometer, Heart, Scale, Syringe } from "lucide-react";
+import { Calendar, User, FileText, Download, Stethoscope, Microscope, Clock, UserCheck, Loader2 } from "lucide-react";
 
-// Données mockées (normalement récupérées via API avec l'id)
-const consultationDetails = {
-    _id: "1",
-    patientId: "Jean Dupont",
-    date: "2025-09-01T10:30:00",
-    motif: "Douleur thoracique",
-    diagnostic: "Angine de poitrine",
-    traitement: "Repos, bêtabloquants",
-    medecin: "Dr. Martin",
-    specialite: "Cardiologie",
-    tensionArterielle: "140/90",
-    tauxGlycemie: 1.1,
-    frequenceCardiaque: 78,
-    poids: 78,
-    temperature: 37.2,
-    notes: "Patient en amélioration, symptômes stabilisés. Recommandation de suivi dans un mois avec tests supplémentaires si nécessaire.",
-    medicaments: ["Aspirine 100mg", "Bisoprolol 5mg", "Atorvastatine 20mg"],
-    taille: 175,
-    instructions: "Prendre les médicaments après les repas. Éviter les efforts physiques intenses. Contacter immédiatement en cas de douleur thoracique persistante.",
-    allergies: ["Pénicilline", "Arachides"],
-    antecedentsMedicaux: ["Hypertension artérielle", "Diabète type 2", "Hypercholestérolémie"],
-    teleconsultation: false,
-    status: "completed",
-    duree: "30 minutes",
-    imc: 25.5
-};
+// Interface pour les données de consultation
+interface Consultation {
+    _id: string;
+    patientId: {
+        _id: string;
+        nom: string;
+        prenom: string;
+        birthDate: string;
+        telephone: string;
+        email: string;
+        gender: string;
+        emergencycontact: any[];
+        createdAt: string;
+        __v: number;
+    };
+    date: string;
+    motif: string;
+    diagnostic: string;
+    traitement: string;
+    medecin: string;
+    specialite: string;
+    tensionArterielle: string;
+    tauxGlycemie: number;
+    frequenceCardiaque: number;
+    poids: number;
+    temperature: number;
+    notes: string;
+    medicaments: string[];
+    taille: number;
+    instructions: string;
+    allergies: string[];
+    antecedentsMedicaux: string[];
+    teleconsultation: boolean;
+    visioLink: string | null;
+    messages: any[];
+    __v: number;
+}
 
 export default function ConsultationDetailsPage() {
-    // Calcul de l'IMC
-    const imc = consultationDetails.poids / Math.pow(consultationDetails.taille / 100, 2);
+    const params = useParams();
+    const consultationId = params.id as string;
 
-    // Interprétation de l'IMC
-    const getImcStatus = (imc: number) => {
-        if (imc < 18.5) return { status: "Insuffisance pondérale", variant: "secondary" as const };
-        if (imc < 25) return { status: "Poids normal", variant: "default" as const };
-        if (imc < 30) return { status: "Surpoids", variant: "outline" as const };
-        return { status: "Obésité", variant: "destructive" as const };
+    const [consultation, setConsultation] = useState<Consultation | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Récupération des données de consultation depuis l'API
+    useEffect(() => {
+        // console.log("Récupération des détails de la consultation pour l'ID:", consultationId);
+        const fetchConsultationDetails = async () => {
+            try {
+                setLoading(true);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+                const response = await fetch(`${apiUrl}/get-consultation/${consultationId}`);
+
+                // console.log("Response de l'API : ", response);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                // console.log("Données reçues de l'API : ", data);
+
+                if (data.data) {
+                    setConsultation(data.data);
+                } else {
+                    throw new Error("Consultation non trouvée");
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Une erreur est survenue");
+                console.error("Erreur lors de la récupération des données:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (consultationId) {
+            fetchConsultationDetails();
+        }
+    }, [consultationId]);
+
+    // Calcul de l'âge du patient
+    const calculateAge = (birthDate: string) => {
+        const today = new Date();
+        const birth = new Date(birthDate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+
+        return age;
     };
 
-    const imcStatus = getImcStatus(imc);
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p className="mt-2 text-muted-foreground">Chargement des détails de la consultation...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 max-w-md">
+                        <h3 className="font-semibold text-red-800">Erreur</h3>
+                        <p className="text-red-700 mt-1">{error}</p>
+                        <Button
+                            variant="outline"
+                            className="mt-3"
+                            onClick={() => window.location.reload()}
+                        >
+                            Réessayer
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!consultation) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <p className="text-muted-foreground">Aucune donnée de consultation disponible</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Formatage de la date de l'examen
+    const formattedDateExamen = new Date(consultation.date).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    // Calcul de l'âge du patient
+    const age = calculateAge(consultation.patientId.birthDate);
+
+    // Badge pour le type d'examen
+    const getTypeBadge = () => {
+        return (
+            <Badge variant="default" className="flex items-center gap-1">
+                <Stethoscope className="h-3 w-3" />
+                Consultation
+            </Badge>
+        );
+    };
 
     return (
         <div className="space-y-6">
@@ -53,12 +174,15 @@ export default function ConsultationDetailsPage() {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Détails de la consultation</h2>
                     <p className="text-muted-foreground">
-                        Consultation du {new Date(consultationDetails.date).toLocaleDateString()}
+                        Consultation du {new Date(consultation.date).toLocaleDateString()}
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" className="cursor-pointer">Modifier</Button>
-                    <Button variant="outline" className="cursor-pointer">Imprimer</Button>
+                    <Button variant="outline">Modifier</Button>
+                    <Button variant="outline" className="flex items-center gap-2">
+                        <Download className="h-4 w-4" />
+                        Télécharger
+                    </Button>
                 </div>
             </div>
 
@@ -79,36 +203,29 @@ export default function ConsultationDetailsPage() {
                                     <Calendar className="h-4 w-4" />
                                     Date et heure
                                 </div>
-                                <p className="font-medium">
-                                    {new Date(consultationDetails.date).toLocaleDateString()} à {' '}
-                                    {new Date(consultationDetails.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </p>
+                                <p className="font-medium">{formattedDateExamen}</p>
                             </div>
 
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Clock className="h-4 w-4" />
-                                    Durée
+                                    Type
                                 </div>
-                                <p className="font-medium">{consultationDetails.duree}</p>
+                                <div className="font-medium">{getTypeBadge()}</div>
                             </div>
 
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <User className="h-4 w-4" />
-                                    Patient
-                                </div>
-                                <p className="font-medium">{consultationDetails.patientId}</p>
-                            </div>
-
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Stethoscope className="h-4 w-4" />
+                                    <UserCheck className="h-4 w-4" />
                                     Médecin
                                 </div>
-                                <p className="font-medium">
-                                    {consultationDetails.medecin} ({consultationDetails.specialite})
-                                </p>
+                                <p className="font-medium">{consultation.medecin}</p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    Spécialité
+                                </div>
+                                <p className="font-medium">{consultation.specialite}</p>
                             </div>
 
                             <div className="space-y-1">
@@ -116,15 +233,15 @@ export default function ConsultationDetailsPage() {
                                     <FileText className="h-4 w-4" />
                                     Motif
                                 </div>
-                                <p className="font-medium">{consultationDetails.motif}</p>
+                                <p className="font-medium">{consultation.motif}</p>
                             </div>
 
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    Type
+                                    Téléconsultation
                                 </div>
-                                <Badge variant={consultationDetails.teleconsultation ? "secondary" : "default"}>
-                                    {consultationDetails.teleconsultation ? "Téléconsultation" : "Présentiel"}
+                                <Badge variant={consultation.teleconsultation ? "secondary" : "default"}>
+                                    {consultation.teleconsultation ? "Oui" : "Non"}
                                 </Badge>
                             </div>
                         </CardContent>
@@ -138,25 +255,24 @@ export default function ConsultationDetailsPage() {
                         <CardContent className="space-y-4">
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Diagnostic</h3>
-                                <p className="font-medium">{consultationDetails.diagnostic}</p>
+                                <p className="font-medium">{consultation.diagnostic}</p>
                             </div>
 
                             <Separator />
 
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Traitement prescrit</h3>
-                                <p>{consultationDetails.traitement}</p>
+                                <p>{consultation.traitement}</p>
                             </div>
 
                             <Separator />
 
                             <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
-                                    <Pill className="h-4 w-4" />
+                                <h3 className="text-sm font-medium text-muted-foreground mb-1">
                                     Médicaments
                                 </h3>
                                 <ul className="list-disc list-inside space-y-1 mt-2">
-                                    {consultationDetails.medicaments.map((med, index) => (
+                                    {consultation.medicaments.map((med, index) => (
                                         <li key={index} className="text-sm">{med}</li>
                                     ))}
                                 </ul>
@@ -166,7 +282,7 @@ export default function ConsultationDetailsPage() {
 
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Instructions</h3>
-                                <p className="text-sm">{consultationDetails.instructions}</p>
+                                <p className="text-sm">{consultation.instructions}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -177,47 +293,71 @@ export default function ConsultationDetailsPage() {
                             <CardTitle>Notes et observations</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm">{consultationDetails.notes}</p>
+                            <p className="text-sm">{consultation.notes}</p>
                         </CardContent>
                     </Card>
                 </div>
 
                 {/* Colonne latérale */}
                 <div className="space-y-6">
-                    {/* Signes vitaux */}
+                    {/* Informations du patient */}
                     <Card>
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-2">
-                                <Heart className="h-5 w-5" />
-                                Signes vitaux
+                                <User className="h-5 w-5" />
+                                Informations du patient
                             </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <div className="space-y-1">
+                                <div className="text-sm text-muted-foreground">Patient</div>
+                                <p className="font-medium">{consultation.patientId.prenom} {consultation.patientId.nom}</p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <div className="text-sm text-muted-foreground">Âge</div>
+                                <p className="font-medium">{age} ans</p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <div className="text-sm text-muted-foreground">Téléphone</div>
+                                <p className="font-medium">{consultation.patientId.telephone}</p>
+                            </div>
+
+                            {consultation.patientId.email && (
+                                <div className="space-y-1">
+                                    <div className="text-sm text-muted-foreground">Email</div>
+                                    <p className="font-medium">{consultation.patientId.email}</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Signes vitaux */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle>Signes vitaux</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Thermometer className="h-4 w-4" />
-                                        Température
-                                    </div>
-                                    <p className="font-medium">{consultationDetails.temperature} °C</p>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Heart className="h-4 w-4" />
-                                        FC
-                                    </div>
-                                    <p className="font-medium">{consultationDetails.frequenceCardiaque} bpm</p>
-                                </div>
-
-                                <div className="space-y-1">
                                     <div className="text-sm text-muted-foreground">Tension art.</div>
-                                    <p className="font-medium">{consultationDetails.tensionArterielle} mmHg</p>
+                                    <p className="font-medium">{consultation.tensionArterielle} mmHg</p>
                                 </div>
 
                                 <div className="space-y-1">
                                     <div className="text-sm text-muted-foreground">Glycémie</div>
-                                    <p className="font-medium">{consultationDetails.tauxGlycemie} g/L</p>
+                                    <p className="font-medium">{consultation.tauxGlycemie} mg/dL</p>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <div className="text-sm text-muted-foreground">FC</div>
+                                    <p className="font-medium">{consultation.frequenceCardiaque} bpm</p>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <div className="text-sm text-muted-foreground">Température</div>
+                                    <p className="font-medium">{consultation.temperature} °C</p>
                                 </div>
                             </div>
 
@@ -225,29 +365,13 @@ export default function ConsultationDetailsPage() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Scale className="h-4 w-4" />
-                                        Poids
-                                    </div>
-                                    <p className="font-medium">{consultationDetails.poids} kg</p>
+                                    <div className="text-sm text-muted-foreground">Poids</div>
+                                    <p className="font-medium">{consultation.poids} kg</p>
                                 </div>
 
                                 <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Ruler className="h-4 w-4" />
-                                        Taille
-                                    </div>
-                                    <p className="font-medium">{consultationDetails.taille} cm</p>
-                                </div>
-                            </div>
-
-                            <Separator />
-
-                            <div className="space-y-1">
-                                <div className="text-sm text-muted-foreground">IMC</div>
-                                <div className="flex items-center justify-between">
-                                    <p className="font-medium">{imc.toFixed(1)} kg/m²</p>
-                                    <Badge variant={imcStatus.variant}>{imcStatus.status}</Badge>
+                                    <div className="text-sm text-muted-foreground">Taille</div>
+                                    <p className="font-medium">{consultation.taille} cm</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -256,56 +380,37 @@ export default function ConsultationDetailsPage() {
                     {/* Antécédents et allergies */}
                     <Card>
                         <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center gap-2">
-                                <AlertCircle className="h-5 w-5" />
-                                Informations médicales
-                            </CardTitle>
+                            <CardTitle>Antécédents médicaux</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-2">Allergies</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {consultationDetails.allergies.map((allergie, index) => (
-                                        <Badge key={index} variant="outline" className="bg-amber-50 text-amber-800 border-amber-200">
-                                            {allergie}
-                                        </Badge>
-                                    ))}
+                            {consultation.allergies.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Allergies</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {consultation.allergies.map((allergie, index) => (
+                                            <Badge key={index} variant="outline" className="bg-amber-50 text-amber-800 border-amber-200">
+                                                {allergie}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
-                            <Separator />
-
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-2">Antécédents médicaux</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {consultationDetails.antecedentsMedicaux.map((antecedent, index) => (
-                                        <Badge key={index} variant="secondary">
-                                            {antecedent}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Actions rapides */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle>Actions</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <Button variant="outline" className="w-full justify-start cursor-pointer">
-                                <FileText className="h-4 w-4 mr-2" />
-                                Générer un compte-rendu
-                            </Button>
-                            <Button variant="outline" className="w-full justify-start cursor-pointer">
-                                <Pill className="h-4 w-4 mr-2" />
-                                Prescription électronique
-                            </Button>
-                            <Button variant="outline" className="w-full justify-start cursor-pointer">
-                                <Calendar className="h-4 w-4 mr-2" />
-                                Planifier un suivi
-                            </Button>
+                            {consultation.antecedentsMedicaux.length > 0 && (
+                                <>
+                                    <Separator />
+                                    <div>
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Antécédents</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {consultation.antecedentsMedicaux.map((antecedent, index) => (
+                                                <Badge key={index} variant="secondary">
+                                                    {antecedent}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

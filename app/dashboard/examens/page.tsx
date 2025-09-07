@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Table,
     TableBody,
@@ -32,60 +32,41 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Eye, Calendar, User, FileText, Download, Stethoscope, Microscope } from "lucide-react";
+import { Plus, Search, Filter, Eye, Calendar, User, FileText, Download, Stethoscope, Microscope, Loader2 } from "lucide-react";
 import { stat } from "fs";
 
-// Données mockées pour les examens
-const examens = [
-    {
-        _id: "1",
-        patientId: { nom: "Dupont", prenom: "Jean" },
-        medecin: "Dr. Martin",
-        specialite: "Cardiologie",
-        typeExamen: "Analyse",
-        dateExamen: "2024-09-15T10:30:00",
-        resultatExamen: "Électrocardiogramme normal",
-        fichierUrl: "/documents/ecg-dupont.pdf",
-        status: "completed"
-    },
-    {
-        _id: "2",
-        patientId: { nom: "Dubois", prenom: "Marie" },
-        medecin: "Dr. Laurent",
-        specialite: "Endocrinologie",
-        typeExamen: "Analyse",
-        dateExamen: "2024-09-10T14:15:00",
-        resultatExamen: "Glycémie à jeun: 1.10 g/L",
-        fichierUrl: "/documents/glycemie-dubois.pdf",
-        status: "completed"
-    },
-    {
-        _id: "3",
-        patientId: { nom: "Koné", prenom: "Ali" },
-        medecin: "Dr. Traoré",
-        specialite: "Chirurgie",
-        typeExamen: "Opération chirurgicale",
-        dateExamen: "2024-09-05T08:00:00",
-        resultatExamen: "Appendicectomie réussie",
-        fichierUrl: "/documents/operation-kone.pdf",
-        status: "completed"
-    },
-    {
-        _id: "4",
-        patientId: { nom: "Dupont", prenom: "Jean" },
-        medecin: "Dr. Martin",
-        specialite: "Cardiologie",
-        typeExamen: "Analyse",
-        dateExamen: "2024-09-20T09:00:00",
-        resultatExamen: "En attente des résultats",
-        status: "pending"
-    },
-];
+// Interface pour les données d'examen
+interface Examen {
+    _id: string;
+    patientId: {
+        _id: string;
+        nom: string;
+        prenom: string;
+        birthDate: string;
+        telephone: string;
+        email: string;
+        gender: string;
+        emergencycontact: any[];
+        createdAt: string;
+        __v: number;
+    };
+    medecin: string;
+    specialite: string;
+    typeExamen: string;
+    dateExamen: string;
+    resultatExamen: string;
+    fichierUrl?: string;
+    __v: number;
+}
 
 const typeExamenOptions = [
     { value: "all", label: "Tous les types" },
     { value: "Analyse", label: "Analyses" },
-    { value: "Opération chirurgicale", label: "Opérations chirurgicales" },
+    { value: "Radiographie", label: "Radiographie" },
+    { value: "Échographie", label: "Échographie" },
+    { value: "Scanner", label: "Scanner" },
+    { value: "IRM", label: "IRM" },
+    { value: "Opération chirurgicale", label: "Opération chirurgicale" },
 ];
 
 const specialiteOptions = [
@@ -104,6 +85,39 @@ export default function ExamensPage() {
     const [selectedType, setSelectedType] = useState("all");
     const [selectedSpecialite, setSelectedSpecialite] = useState("all");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [examens, setExamens] = useState<Examen[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Récupération des examens depuis l'API
+    useEffect(() => {
+        const fetchExamens = async () => {
+            try {
+                setLoading(true);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+                const response = await fetch(`${apiUrl}/get-all-examens`);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.message === "Examens médicaux récupérés avec succès !" && data.examens) {
+                    setExamens(data.examens);
+                } else {
+                    throw new Error("Données examens non trouvées");
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Une erreur est survenue");
+                console.error("Erreur lors de la récupération des examens:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchExamens();
+    }, []);
 
     const filteredExamens = examens.filter(examen => {
         const matchesSearch =
@@ -140,6 +154,36 @@ export default function ExamensPage() {
             <Microscope className="h-4 w-4 text-blue-500" /> :
             <Stethoscope className="h-4 w-4 text-red-500" />;
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p className="mt-2 text-muted-foreground">Chargement des examens...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 max-w-md">
+                        <h3 className="font-semibold text-red-800">Erreur</h3>
+                        <p className="text-red-700 mt-1">{error}</p>
+                        <button
+                            className="mt-3 px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                            onClick={() => window.location.reload()}
+                        >
+                            Réessayer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -188,8 +232,11 @@ export default function ExamensPage() {
                                             <SelectValue placeholder="Sélectionner le type" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Analyse">Analyse</SelectItem>
-                                            <SelectItem value="Opération chirurgicale">Opération chirurgicale</SelectItem>
+                                            {
+                                                specialiteOptions.map(spec => (
+                                                    <SelectItem key={spec} value={spec}>{spec}</SelectItem>
+                                                ))
+                                            }
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -303,7 +350,7 @@ export default function ExamensPage() {
                                 <TableHead>Spécialité</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Résultat</TableHead>
-                                <TableHead>Statut</TableHead>
+                                {/* <TableHead>Statut</TableHead> */}
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -335,9 +382,9 @@ export default function ExamensPage() {
                                     <TableCell className="max-w-xs truncate">
                                         {examen.resultatExamen}
                                     </TableCell>
-                                    <TableCell>
+                                    {/* <TableCell>
                                         {getStatusBadge(examen.status as Status)}
-                                    </TableCell>
+                                    </TableCell> */}
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
                                             {examen.fichierUrl && (
@@ -356,6 +403,12 @@ export default function ExamensPage() {
                             ))}
                         </TableBody>
                     </Table>
+
+                    {filteredExamens.length === 0 && examens.length > 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                            <p>Aucun examen ne correspond à votre recherche</p>
+                        </div>
+                    )}
 
                     {filteredExamens.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">

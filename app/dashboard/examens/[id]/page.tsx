@@ -4,42 +4,92 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, User, FileText, Download, Stethoscope, Microscope, Clock, UserCheck } from "lucide-react";
+import { Calendar, User, FileText, Download, Stethoscope, Microscope, Clock, UserCheck, Loader2 } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 // Données mockées (normalement récupérées via API avec l'id)
-const examenDetails = {
-    _id: "1",
+interface Examen {
+    _id: string;
     patientId: {
-        _id: "1",
-        nom: "Dupont",
-        prenom: "Jean",
-        birthDate: "1985-05-15",
-        telephone: "+33 6 12 34 56 78",
-        email: "jean.dupont@email.com",
-        ref: "PAT-001",
-        gender: "male"
-    },
-    medecin: "Dr. Martin",
-    specialite: "Cardiologie",
-    typeExamen: "Analyse",
-    dateExamen: "2024-09-15T10:30:00",
-    resultatExamen: "Électrocardiogramme normal. Rythme sinusal régulier à 72 battements par minute. Ondes P, complexes QRS et ondes T normaux. Aucune anomalie détectée. Intervalle PR et QT dans les limites normales.",
-    fichierUrl: "/documents/ecg-dupont.pdf",
-    status: "completed",
-    duree: "30 minutes",
-    notes: "Patient coopératif. Aucune douleur ressentie pendant l'examen. Recommandation de suivi dans 6 mois."
-};
+        _id: string;
+        nom: string;
+        prenom: string;
+        birthDate: string;
+        telephone: string;
+        email: string;
+        gender: string;
+        emergencycontact: any[];
+        createdAt: string;
+        __v: number;
+    };
+    medecin: string;
+    specialite: string;
+    typeExamen: string;
+    dateExamen: string;
+    resulatExamen: string;
+    fichierUrl: string;
+}
 
 export default function ExamenDetailsPage() {
-    // Formatage de la date de l'examen
-    const formattedDateExamen = new Date(examenDetails.dateExamen).toLocaleDateString('fr-FR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    const params = useParams();
+    const examenId = params.id as string;
+
+    const [examenDetails, setExamenDetails] = useState<Examen | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Récupération des données de consultation depuis l'API
+    useEffect(() => {
+        // console.log("Récupération des détails de la consultation pour l'ID:", examenId);
+        const fetchExamenDetails = async () => {
+            try {
+                setLoading(true);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+                const response = await fetch(`${apiUrl}/get-examen/${examenId}`);
+
+                // console.log("Response de l'API : ", response);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Données reçues de l'API : ", data);
+
+                if (data.data) {
+                    setExamenDetails(data.data);
+                } else {
+                    throw new Error("Examen non trouvé");
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Une erreur est survenue");
+                console.error("Erreur lors de la récupération des données:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (examenId) {
+            fetchExamenDetails();
+        }
+    }, [examenId]);
+
+    const formattedDate = examenDetails
+        ? new Date(examenDetails.dateExamen).toLocaleDateString("fr-FR", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        })
+        : "";
+
+    const formattedTime = examenDetails
+        ? new Date(examenDetails.dateExamen).toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+        })
+        : "";
 
     // Calcul de l'âge du patient
     const calculateAge = (birthDate: string) => {
@@ -55,16 +105,20 @@ export default function ExamenDetailsPage() {
         return age;
     };
 
-    const age = calculateAge(examenDetails.patientId.birthDate);
+    const age = examenDetails ? calculateAge(examenDetails.patientId.birthDate) : null;
 
     // Badge pour le type d'examen
     const getTypeBadge = (type: string) => {
-        const typeConfig = {
-            Analyse: { label: "Analyse", variant: "default" as const, icon: Microscope },
-            "Opération chirurgicale": { label: "Opération chirurgicale", variant: "secondary" as const, icon: Stethoscope },
+        const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline"; icon: any }> = {
+            Analyse: { label: "Analyse", variant: "default", icon: Microscope },
+            Radiographie: { label: "Radiographie", variant: "secondary", icon: FileText },
+            Échographie: { label: "Échographie", variant: "secondary", icon: Stethoscope },
+            Scanner: { label: "Scanner", variant: "default", icon: FileText },
+            IRM: { label: "IRM", variant: "default", icon: FileText },
+            Opération: { label: "Opération chirurgicale", variant: "secondary", icon: Stethoscope },
         };
 
-        const config = (typeConfig as Record<string, typeof typeConfig[keyof typeof typeConfig]>)[type] || { label: "Inconnu", variant: "outline" as const, icon: FileText };
+        const config = typeConfig[type] || { label: "Inconnu", variant: "outline" as const, icon: FileText };
         const IconComponent = config.icon;
 
         return (
@@ -74,6 +128,7 @@ export default function ExamenDetailsPage() {
             </Badge>
         );
     };
+
 
     // Badge pour le statut
     type Status = "completed" | "pending" | "canceled";
@@ -92,6 +147,47 @@ export default function ExamenDetailsPage() {
         return <Badge variant="outline">Inconnu</Badge>;
     };
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p className="mt-2 text-muted-foreground">Chargement des détails de l'examen...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 max-w-md">
+                        <h3 className="font-semibold text-red-800">Erreur</h3>
+                        <p className="text-red-700 mt-1">{error}</p>
+                        <Button
+                            variant="outline"
+                            className="mt-3"
+                            onClick={() => window.location.reload()}
+                        >
+                            Réessayer
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!examenDetails) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <p className="text-muted-foreground">Aucune donnée de consultation disponible</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -102,14 +198,14 @@ export default function ExamenDetailsPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline">Modifier</Button>
+                    <Button variant="outline" className="cursor-pointer">Modifier</Button>
                     {examenDetails.fichierUrl && (
-                        <Button variant="outline" className="flex items-center gap-2">
+                        <Button variant="outline" className="flex items-center gap-2 cursor-pointer">
                             <Download className="h-4 w-4" />
                             Télécharger
                         </Button>
                     )}
-                    <Button variant="outline">Imprimer</Button>
+                    <Button variant="outline" className="cursor-pointer">Imprimer</Button>
                 </div>
             </div>
 
@@ -128,17 +224,17 @@ export default function ExamenDetailsPage() {
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <Calendar className="h-4 w-4" />
-                                    Date et heure
+                                    Date
                                 </div>
-                                <p className="font-medium">{formattedDateExamen}</p>
+                                <p className="font-medium">{formattedDate}</p>
                             </div>
 
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <Clock className="h-4 w-4" />
-                                    Durée
+                                    Heure
                                 </div>
-                                <p className="font-medium">{examenDetails.duree}</p>
+                                <p className="font-medium">{formattedTime}</p>
                             </div>
 
                             <div className="space-y-1">
@@ -152,7 +248,7 @@ export default function ExamenDetailsPage() {
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     Statut
                                 </div>
-                                <div className="font-medium">{getStatusBadge(examenDetails.status as Status)}</div>
+                                <Badge variant="default">Terminé</Badge>
                             </div>
 
                             <div className="space-y-1">
@@ -174,23 +270,23 @@ export default function ExamenDetailsPage() {
 
                     {/* Résultats de l'examen */}
                     <Card>
-                        <CardHeader className="pb-3">
+                        <CardHeader className="">
                             <CardTitle>Résultats de l'examen</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="bg-muted/50 p-4 rounded-lg">
-                                <p className="whitespace-pre-line">{examenDetails.resultatExamen}</p>
+                                <p className="whitespace-pre-line">{examenDetails.resulatExamen}</p>
                             </div>
 
-                            {examenDetails.notes && (
+                            {/* {examenDetails.resulatExamen && (
                                 <>
                                     <Separator className="my-4" />
                                     <div>
                                         <h3 className="text-sm font-medium text-muted-foreground mb-2">Notes supplémentaires</h3>
-                                        <p className="text-sm">{examenDetails.notes}</p>
+                                        <p className="text-sm">{examenDetails.resulatExamen}</p>
                                     </div>
                                 </>
-                            )}
+                            )} */}
                         </CardContent>
                     </Card>
                 </div>
@@ -216,10 +312,10 @@ export default function ExamenDetailsPage() {
                                 <p className="font-medium">{age} ans</p>
                             </div>
 
-                            <div className="space-y-1">
+                            {/* <div className="space-y-1">
                                 <div className="text-sm text-muted-foreground">Référence</div>
                                 <p className="font-medium">{examenDetails.patientId.ref}</p>
-                            </div>
+                            </div> */}
 
                             <div className="space-y-1">
                                 <div className="text-sm text-muted-foreground">Téléphone</div>
@@ -233,7 +329,7 @@ export default function ExamenDetailsPage() {
                                 </div>
                             )}
 
-                            <Button variant="outline" className="w-full mt-2" asChild>
+                            <Button variant="outline" className="w-full mt-2 cursor-pointer" asChild>
                                 <a href={`/dashboard/patients/${examenDetails.patientId._id}`}>
                                     Voir le dossier patient
                                 </a>
@@ -255,11 +351,13 @@ export default function ExamenDetailsPage() {
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium">Rapport d'examen</p>
-                                            <p className="text-xs text-muted-foreground">PDF • 2.4 MB</p>
+                                            <p className="text-xs text-muted-foreground">PDF</p>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="icon">
-                                        <Download className="h-4 w-4" />
+                                    <Button variant="ghost" size="icon" asChild>
+                                        <a href={examenDetails.fichierUrl} target="_blank" rel="noopener noreferrer" download>
+                                            <Download className="h-4 w-4" />
+                                        </a>
                                     </Button>
                                 </div>
                             </CardContent>
@@ -267,30 +365,30 @@ export default function ExamenDetailsPage() {
                     )}
 
                     {/* Actions rapides */}
-                    <Card>
+                    {/* <Card>
                         <CardHeader className="pb-3">
                             <CardTitle>Actions</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <Button variant="outline" className="w-full justify-start">
+                            <Button variant="outline" className="w-full justify-start cursor-pointer">
                                 <FileText className="h-4 w-4 mr-2" />
                                 Générer un rapport
                             </Button>
-                            <Button variant="outline" className="w-full justify-start">
+                            <Button variant="outline" className="w-full justify-start cursor-pointer">
                                 <Calendar className="h-4 w-4 mr-2" />
                                 Planifier un suivi
                             </Button>
-                            <Button variant="outline" className="w-full justify-start">
+                            <Button variant="outline" className="w-full justify-start cursor-pointer">
                                 <User className="h-4 w-4 mr-2" />
                                 Contacter le patient
                             </Button>
                         </CardContent>
-                    </Card>
+                    </Card> */}
                 </div>
             </div>
 
             {/* Examens similaires */}
-            <Card>
+            {/* <Card>
                 <CardHeader>
                     <CardTitle>Examens similaires</CardTitle>
                     <CardDescription>
@@ -320,7 +418,7 @@ export default function ExamenDetailsPage() {
                         <Button variant="outline">Voir tout l'historique</Button>
                     </div>
                 </CardContent>
-            </Card>
+            </Card> */}
         </div>
     );
 }

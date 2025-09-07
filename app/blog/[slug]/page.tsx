@@ -25,9 +25,9 @@ interface BlogPageProps {
 }
 
 // Génération des métadonnées
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
-    const article = await getArticleBySlug(slug);
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+    const { slug } = params;
+    const article = getArticleBySlug(slug);
 
     if (!article) {
         return {
@@ -46,12 +46,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
 }
 
-const ArticlePage = async ({ params }: { params: Promise<{ slug: string }> }) => {
+const ArticlePage = async ({ params }: { params: { slug: string } }) => {
     // On await les params
-    const { slug } = await params;
+    const { slug } = params;
 
     // On await les données de l'article
-    const article = await getArticleBySlug(slug);
+    const article = getArticleBySlug(slug);
 
     // Si l'article n'existe pas, on retourne une 404
     if (!article) {

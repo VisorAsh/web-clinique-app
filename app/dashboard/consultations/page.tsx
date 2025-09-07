@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Table,
     TableBody,
@@ -33,44 +33,45 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Eye, Calendar, User, Stethoscope } from "lucide-react";
+import { Plus, Search, Filter, Eye, Calendar, User, Stethoscope, Microscope, Loader2 } from "lucide-react";
 
-// Données mockées
-const consultations = [
-    {
-        _id: "1",
-        patient: "Jean Dupont",
-        date: "2025-09-01",
-        motif: "Douleur thoracique",
-        medecin: "Dr. Martin",
-        specialite: "Cardiologie",
-        tauxGlycemie: 120,
-        poids: 78,
-        temperature: 37.2,
-    },
-    {
-        _id: "2",
-        patient: "Marie Dubois",
-        date: "2025-09-03",
-        motif: "Suivi diabète",
-        medecin: "Dr. Laurent",
-        specialite: "Endocrinologie",
-        tauxGlycemie: 145,
-        poids: 65,
-        temperature: 36.8,
-    },
-    {
-        _id: "3",
-        patient: "Ali Koné",
-        date: "2025-09-05",
-        motif: "Fièvre persistante",
-        medecin: "Dr. Traoré",
-        specialite: "Médecine générale",
-        tauxGlycemie: 95,
-        poids: 82,
-        temperature: 38.5,
-    },
-];
+// Interface pour les données de consultation
+interface Consultation {
+    _id: string;
+    patientId: {
+        _id: string;
+        nom: string;
+        prenom: string;
+        birthDate: string;
+        telephone: string;
+        email: string;
+        gender: string;
+        emergencycontact: any[];
+        createdAt: string;
+        __v: number;
+    };
+    date: string;
+    motif: string;
+    diagnostic: string;
+    traitement: string;
+    medecin: string;
+    specialite: string;
+    tensionArterielle: string;
+    tauxGlycemie: number;
+    frequenceCardiaque: number;
+    poids: number;
+    temperature: number;
+    notes: string;
+    medicaments: string[];
+    taille: number;
+    instructions: string;
+    allergies: string[];
+    antecedentsMedicaux: string[];
+    teleconsultation: boolean;
+    visioLink: string | null;
+    messages: any[];
+    __v: number;
+}
 
 const specialites = [
     "Cardiologie",
@@ -87,9 +88,45 @@ export default function ConsultationsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedSpecialite, setSelectedSpecialite] = useState("all");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [consultations, setConsultations] = useState<Consultation[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Récupération des consultations depuis l'API
+    useEffect(() => {
+        const fetchConsultations = async () => {
+            try {
+                setLoading(true);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+                const response = await fetch(`${apiUrl}/get-all-consultations`);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                // console.log("Données des consultations reçues:", data);
+
+                if (data.consultations) {
+                    setConsultations(data.consultations);
+                } else {
+                    throw new Error("Données consultations non trouvées");
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Une erreur est survenue");
+                console.error("Erreur lors de la récupération des consultations:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchConsultations();
+    }, []);
 
     const filteredConsultations = consultations.filter(consultation => {
-        const matchesSearch = consultation.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        const matchesSearch =
+            consultation.patientId.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            consultation.patientId.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
             consultation.motif.toLowerCase().includes(searchTerm.toLowerCase()) ||
             consultation.medecin.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -108,6 +145,42 @@ export default function ConsultationsPage() {
     //     const config = statusConfig[status] || { label: "Inconnu", variant: "outline" };
     //     return <Badge variant={config.variant}>{config.label}</Badge>;
     //   };
+
+    const getTypeIcon = (type: string) => {
+        return type === "Analyse" ?
+            <Microscope className="h-4 w-4 text-blue-500" /> :
+            <Stethoscope className="h-4 w-4 text-red-500" />;
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p className="mt-2 text-muted-foreground">Chargement des consultations...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 max-w-md">
+                        <h3 className="font-semibold text-red-800">Erreur</h3>
+                        <p className="text-red-700 mt-1">{error}</p>
+                        <button
+                            className="mt-3 px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                            onClick={() => window.location.reload()}
+                        >
+                            Réessayer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -343,7 +416,7 @@ export default function ConsultationsPage() {
                                     <TableCell>
                                         <div className="flex items-center gap-2">
                                             <User className="h-4 w-4 text-muted-foreground" />
-                                            {consultation.patient}
+                                            {consultation.patientId.prenom} {consultation.patientId.nom}
                                         </div>
                                     </TableCell>
                                     <TableCell>{consultation.motif}</TableCell>
@@ -372,7 +445,13 @@ export default function ConsultationsPage() {
                         </TableBody>
                     </Table>
 
-                    {filteredConsultations.length === 0 && (
+                     {filteredConsultations.length === 0 && consultations.length > 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                        <p>Aucune consultation ne correspond à votre recherche</p>
+                        </div>
+                    )}
+
+                    {consultations.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
                             <p>Aucune consultation trouvée</p>
                         </div>

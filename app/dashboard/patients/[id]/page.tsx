@@ -4,37 +4,111 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, User, Phone, Mail, VenusAndMars, Clock, AlertCircle, Contact, Edit } from "lucide-react";
+import { Calendar, User, Phone, Mail, VenusAndMars, Clock, AlertCircle, Contact, Edit, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
-// Données mockées (normalement récupérées via API avec l'id)
-const patientDetails = {
-    _id: "1",
-    nom: "Dupont",
-    prenom: "Jean",
-    birthDate: "1985-05-15",
-    telephone: "+33 6 12 34 56 78",
-    email: "jean.dupont@email.com",
-    ref: "PAT-001",
-    gender: "male",
-    emergencycontact: [
-        {
-            nom: "Dupont",
-            prenom: "Marie",
-            relation: "épouse",
-            telephone: "+33 6 98 76 54 32",
-            email: "marie.dupont@email.com"
-        },
-        {
-            nom: "Dupont",
-            prenom: "Luc",
-            relation: "fils",
-            telephone: "+33 6 87 65 43 21"
-        }
-    ],
-    createdAt: "2024-01-15T10:30:00",
-};
+// Interface pour les données patient
+interface Patient {
+    _id: string;
+    nom: string;
+    prenom: string;
+    birthDate: string;
+    telephone: string;
+    email: string;
+    gender: string;
+    emergencycontact: Array<{
+        nom: string;
+        prenom: string;
+        relation: string;
+        telephone: string;
+        email?: string;
+    }>;
+    createdAt: string;
+    __v: number;
+}
+
+// Interfaces pour les données supplémentaires
+interface Consultation {
+    _id: string;
+    date: string;
+    motif: string;
+    medecin: string;
+    specialite: string;
+    diagnostic: string;
+}
+
+interface Examen {
+    _id: string;
+    dateExamen: string;
+    typeExamen: string;
+    medecin: string;
+    specialite: string;
+    resultatExamen: string;
+}
 
 export default function PatientDetailsPage() {
+    const params = useParams();
+    const patientId = params.id as string;
+
+    const [patient, setPatient] = useState<Patient | null>(null);
+    const [consultations, setConsultations] = useState<Consultation[]>([]);
+    const [examens, setExamens] = useState<Examen[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Récupération des données patient depuis l'API
+    useEffect(() => {
+        const fetchPatientData = async () => {
+            try {
+                setLoading(true);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+
+                // Récupération des infos du patient
+                const patientResponse = await fetch(`${apiUrl}/get-patient/${patientId}`);
+
+                if (!patientResponse.ok) {
+                    throw new Error(`Erreur HTTP: ${patientResponse.status}`);
+                }
+
+                const patientData = await patientResponse.json();
+
+                if (patientData.message === "ok" && patientData.patient) {
+                    setPatient(patientData.patient);
+
+                    // Récupération des consultations du patient
+                    const consultationsResponse = await fetch(`${apiUrl}/get-consultations-patient/${patientId}`);
+                    if (consultationsResponse.ok) {
+                        const consultationsData = await consultationsResponse.json();
+                        if (consultationsData.consultations) {
+                            setConsultations(consultationsData.consultations.slice(0, 5)); // Limiter à 5 consultations
+                        }
+                    }
+
+                    // Récupération des examens du patient
+                    const examensResponse = await fetch(`${apiUrl}/get-examen-patient/${patientId}`);
+                    if (examensResponse.ok) {
+                        const examensData = await examensResponse.json();
+                        if (examensData.examens) {
+                            setExamens(examensData.examens.slice(0, 5)); // Limiter à 5 examens
+                        }
+                    }
+                } else {
+                    throw new Error("Patient non trouvé");
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Une erreur est survenue");
+                console.error("Erreur lors de la récupération des données:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (patientId) {
+            fetchPatientData();
+        }
+    }, [patientId]);
+
     // Calcul de l'âge
     const calculateAge = (birthDate: string) => {
         const today = new Date();
@@ -48,25 +122,6 @@ export default function PatientDetailsPage() {
 
         return age;
     };
-
-    const age = calculateAge(patientDetails.birthDate);
-
-    // Formatage de la date de naissance
-    const formattedBirthDate = new Date(patientDetails.birthDate).toLocaleDateString('fr-FR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-
-    // Formatage de la date de création
-    const formattedCreatedAt = new Date(patientDetails.createdAt).toLocaleDateString('fr-FR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
 
     // Badge pour le genre
     type Gender = "male" | "female" | "other";
@@ -85,13 +140,70 @@ export default function PatientDetailsPage() {
         return <Badge variant="outline">Inconnu</Badge>;
     };
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p className="mt-2 text-muted-foreground">Chargement des données du patient...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 max-w-md">
+                        <h3 className="font-semibold text-red-800">Erreur</h3>
+                        <p className="text-red-700 mt-1">{error}</p>
+                        <Button
+                            variant="outline"
+                            className="mt-3"
+                            onClick={() => window.location.reload()}
+                        >
+                            Réessayer
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!patient) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <p className="text-muted-foreground">Aucune donnée patient disponible</p>
+                </div>
+            </div>
+        );
+    }
+
+    const age = calculateAge(patient.birthDate);
+    const formattedBirthDate = new Date(patient.birthDate).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const formattedCreatedAt = new Date(patient.createdAt).toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Détails du patient</h2>
                     <p className="text-muted-foreground">
-                        Dossier médical de {patientDetails.prenom} {patientDetails.nom}
+                        Dossier médical de {patient.prenom} {patient.nom}
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -120,7 +232,7 @@ export default function PatientDetailsPage() {
                                     <User className="h-4 w-4" />
                                     Nom complet
                                 </div>
-                                <p className="font-medium">{patientDetails.prenom} {patientDetails.nom}</p>
+                                <p className="font-medium">{patient.prenom} {patient.nom}</p>
                             </div>
 
                             <div className="space-y-1">
@@ -128,7 +240,7 @@ export default function PatientDetailsPage() {
                                     <VenusAndMars className="h-4 w-4" />
                                     Genre
                                 </div>
-                                <div className="font-medium">{getGenderBadge(patientDetails.gender)}</div>
+                                <div className="font-medium">{getGenderBadge(patient.gender)}</div>
                             </div>
 
                             <div className="space-y-1">
@@ -148,9 +260,9 @@ export default function PatientDetailsPage() {
 
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    Référence
+                                    ID Patient
                                 </div>
-                                <p className="font-medium">{patientDetails.ref}</p>
+                                <p className="font-medium text-sm">{patient._id}</p>
                             </div>
 
                             <div className="space-y-1">
@@ -167,7 +279,7 @@ export default function PatientDetailsPage() {
                     <Card>
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-2">
-                                <Contact className="h-5 w-5" />
+                                <Phone className="h-5 w-5" />
                                 Informations de contact
                             </CardTitle>
                         </CardHeader>
@@ -178,7 +290,7 @@ export default function PatientDetailsPage() {
                                         <Phone className="h-4 w-4" />
                                         Téléphone
                                     </div>
-                                    <p className="font-medium">{patientDetails.telephone}</p>
+                                    <p className="font-medium">{patient.telephone}</p>
                                 </div>
 
                                 <div className="space-y-1">
@@ -186,7 +298,7 @@ export default function PatientDetailsPage() {
                                         <Mail className="h-4 w-4" />
                                         Email
                                     </div>
-                                    <p className="font-medium">{patientDetails.email || "Non renseigné"}</p>
+                                    <p className="font-medium">{patient.email || "Non renseigné"}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -204,8 +316,8 @@ export default function PatientDetailsPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {patientDetails.emergencycontact.length > 0 ? (
-                                patientDetails.emergencycontact.map((contact, index) => (
+                            {patient.emergencycontact.length > 0 ? (
+                                patient.emergencycontact.map((contact, index) => (
                                     <div key={index} className="space-y-2 p-3 bg-muted/50 rounded-lg">
                                         <div className="font-medium">{contact.prenom} {contact.nom}</div>
                                         <div className="text-sm text-muted-foreground">{contact.relation}</div>
@@ -256,15 +368,19 @@ export default function PatientDetailsPage() {
                         <CardContent className="space-y-3">
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">Consultations</span>
-                                <Badge variant="outline">12</Badge>
+                                <Badge variant="outline">{consultations.length}</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Examens</span>
+                                <Badge variant="outline">{examens.length}</Badge>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">Dernière visite</span>
-                                <span className="text-sm font-medium">15 Sep 2024</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">Prochain RDV</span>
-                                <span className="text-sm font-medium">30 Sep 2024</span>
+                                <span className="text-sm font-medium">
+                                    {consultations.length > 0
+                                        ? new Date(consultations[0].date).toLocaleDateString()
+                                        : "Aucune"}
+                                </span>
                             </div>
                         </CardContent>
                     </Card>
@@ -274,28 +390,76 @@ export default function PatientDetailsPage() {
             {/* Dernières consultations */}
             <Card>
                 <CardHeader className="pb-3">
-                    <CardTitle>Historique des consultations récentes</CardTitle>
+                    <CardTitle>Historique des consultations</CardTitle>
                     <CardDescription>
-                        Les 5 dernières consultations de {patientDetails.prenom} {patientDetails.nom}
+                        Les dernières consultations de {patient.prenom} {patient.nom}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {[1, 2, 3, 4, 5].map((item) => (
-                            <div key={item} className="flex items-center justify-between p-3 border rounded-lg">
-                                <div>
-                                    <div className="font-medium">Consultation #{item}</div>
-                                    <div className="text-sm text-muted-foreground">15 Septembre 2024 - Dr. Martin</div>
+                        {consultations.length > 0 ? (
+                            consultations.map((consultation) => (
+                                <div key={consultation._id} className="flex items-center justify-between p-3 border rounded-lg">
+                                    <div>
+                                        <div className="font-medium">{consultation.motif}</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {new Date(consultation.date).toLocaleDateString()} - {consultation.medecin} ({consultation.specialite})
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="sm" asChild>
+                                        <a href={`/dashboard/consultations/${consultation._id}`}>
+                                            Voir détails
+                                        </a>
+                                    </Button>
                                 </div>
-                                <Button variant="ghost" size="sm">
-                                    Voir détails
-                                </Button>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <p className="text-center text-muted-foreground py-4">Aucune consultation trouvée</p>
+                        )}
                     </div>
-                    <div className="mt-4 text-center">
-                        <Button variant="outline">Voir tout l'historique</Button>
+                    {/* {consultations.length > 0 && (
+                        <div className="mt-4 text-center">
+                            <Button variant="outline">Voir tout l'historique</Button>
+                        </div>
+                    )} */}
+                </CardContent>
+            </Card>
+
+            {/* Derniers examens */}
+            <Card>
+                <CardHeader className="pb-3">
+                    <CardTitle>Historique des examens</CardTitle>
+                    <CardDescription>
+                        Les 5 derniers examens de {patient.prenom} {patient.nom}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        {examens.length > 0 ? (
+                            examens.map((examen) => (
+                                <div key={examen._id} className="flex items-center justify-between p-3 border rounded-lg">
+                                    <div>
+                                        <div className="font-medium">{examen.typeExamen}</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {new Date(examen.dateExamen).toLocaleDateString()} - {examen.medecin} ({examen.specialite})
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="sm" asChild>
+                                        <a href={`/dashboard/examens/${examen._id}`}>
+                                            Voir détails
+                                        </a>
+                                    </Button>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center text-muted-foreground py-4">Aucun examen trouvé</p>
+                        )}
                     </div>
+                    {/* {examens.length > 0 && (
+                        <div className="mt-4 text-center">
+                            <Button variant="outline">Voir tout l'historique</Button>
+                        </div>
+                    )} */}
                 </CardContent>
             </Card>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Table,
     TableBody,
@@ -32,72 +32,72 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Eye, Calendar, User, Phone, Mail } from "lucide-react";
+import { Plus, Search, Filter, Eye, Calendar, User, Phone, Mail, Loader2 } from "lucide-react";
 
-// Données mockées pour les patients
-const patients = [
-    {
-        _id: "1",
-        nom: "Dupont",
-        prenom: "Jean",
-        birthDate: "1985-05-15",
-        telephone: "+33 6 12 34 56 78",
-        email: "jean.dupont@email.com",
-        ref: "PAT-001",
-        gender: "male",
-        emergencycontact: [
-            { nom: "Dupont", prenom: "Marie", relation: "épouse", telephone: "+33 6 98 76 54 32" }
-        ],
-        createdAt: "2024-01-15",
-    },
-    {
-        _id: "2",
-        nom: "Dubois",
-        prenom: "Marie",
-        birthDate: "1990-08-22",
-        telephone: "+33 6 23 45 67 89",
-        email: "marie.dubois@email.com",
-        ref: "PAT-002",
-        gender: "female",
-        emergencycontact: [
-            { nom: "Dubois", prenom: "Pierre", relation: "père", telephone: "+33 6 87 65 43 21" }
-        ],
-        createdAt: "2024-02-10",
-    },
-    {
-        _id: "3",
-        nom: "Koné",
-        prenom: "Ali",
-        birthDate: "1978-12-03",
-        telephone: "+33 6 34 56 78 90",
-        email: "ali.kone@email.com",
-        ref: "PAT-003",
-        gender: "male",
-        emergencycontact: [
-            { nom: "Koné", prenom: "Aïcha", relation: "soeur", telephone: "+33 6 76 54 32 10" }
-        ],
-        createdAt: "2024-03-05",
-    },
-];
+// Interface pour les données patient
+interface Patient {
+    _id: string;
+    nom: string;
+    prenom: string;
+    birthDate: string;
+    telephone: string;
+    email: string;
+    gender: string;
+    emergencycontact: any[];
+    createdAt: string;
+    __v: number;
+}
 
 const genderOptions = [
     { value: "male", label: "Homme" },
     { value: "female", label: "Femme" },
-    { value: "other", label: "Autre" },
+    // { value: "other", label: "Autre" },
 ];
 
 export default function PatientsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedGender, setSelectedGender] = useState("all");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Récupération des patients depuis l'API
+    useEffect(() => {
+        const fetchPatients = async () => {
+            try {
+                setLoading(true);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+                const response = await fetch(`${apiUrl}/get-all-patient`);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.message === "ok" && data.patient) {
+                    setPatients(data.patient);
+                } else {
+                    throw new Error("Données patients non trouvées");
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Une erreur est survenue");
+                console.error("Erreur lors de la récupération des patients:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPatients();
+    }, []);
 
     const filteredPatients = patients.filter(patient => {
         const matchesSearch =
             patient.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
             patient.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
             patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            patient.telephone.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            patient.ref.toLowerCase().includes(searchTerm.toLowerCase());
+            patient.telephone.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesGender = selectedGender === "all" || patient.gender === selectedGender;
 
@@ -133,6 +133,36 @@ export default function PatientsPage() {
         return <Badge variant="outline">Inconnu</Badge>;
     };
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p className="mt-2 text-muted-foreground">Chargement des patients...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 max-w-md">
+                        <h3 className="font-semibold text-red-800">Erreur</h3>
+                        <p className="text-red-700 mt-1">{error}</p>
+                        <button
+                            className="mt-3 px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                            onClick={() => window.location.reload()}
+                        >
+                            Réessayer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -144,7 +174,7 @@ export default function PatientsPage() {
                 </div> */}
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button className="flex items-center gap-2">
+                        <Button className="flex items-center gap-2 cursor-pointer">
                             <Plus className="h-4 w-4" />
                             Nouveau patient
                         </Button>
@@ -257,7 +287,6 @@ export default function PatientsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Référence</TableHead>
                                 <TableHead>Patient</TableHead>
                                 <TableHead>Âge</TableHead>
                                 <TableHead>Genre</TableHead>
@@ -269,11 +298,21 @@ export default function PatientsPage() {
                         <TableBody>
                             {filteredPatients.map((patient) => (
                                 <TableRow key={patient._id} className="hover:bg-muted/50">
-                                    <TableCell className="font-medium">{patient.ref}</TableCell>
                                     <TableCell>
-                                        <div className="flex items-center gap-2">
+                                        {/* <div className="flex items-center gap-2">
                                             <User className="h-4 w-4 text-muted-foreground" />
                                             {patient.prenom} {patient.nom}
+                                        </div> */}
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-blue-100 p-2 rounded-full">
+                                                <User className="h-4 w-4 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <div className="font-medium">{patient.prenom} {patient.nom}</div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    ID: {patient._id.substring(0, 8)}...
+                                                </div>
+                                            </div>
                                         </div>
                                     </TableCell>
                                     <TableCell>
@@ -314,6 +353,12 @@ export default function PatientsPage() {
                             ))}
                         </TableBody>
                     </Table>
+
+                    {filteredPatients.length === 0 && patients.length > 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                            <p>Aucun patient ne correspond à votre recherche</p>
+                        </div>
+                    )}
 
                     {filteredPatients.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">

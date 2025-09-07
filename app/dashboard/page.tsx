@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -12,10 +13,25 @@ import {
     Clock,
     AlertCircle,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    Loader2
 } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
+    const [stats, setStats] = useState({
+        patients: 0,
+        consultations: 0,
+        examens: 0,
+        rdvAujourdhui: 0,
+        tauxRemplissage: 0,
+        evolutionPatients: 0,
+        evolutionConsultations: 0,
+    });
+    const [consultations, setConsultations] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
     // Si l'utilisateur n'est pas connecté, il retourne sur la page de login
     if (typeof window !== "undefined") {
         const token = localStorage.getItem("token");
@@ -25,24 +41,60 @@ export default function DashboardPage() {
         }
     }
 
-    // Données mockées pour les statistiques
-    const stats = {
-        patients: 124,
-        consultations: 48,
-        examens: 36,
-        rdvAujourdhui: 8,
-        tauxRemplissage: 75,
-        evolutionPatients: 12, // +12%
-        evolutionConsultations: -5, // -5%
-    };
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const [patientsRes, consultationsRes, examensRes] = await Promise.all([
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-all-patient`),
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-all-consultations`),
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-all-examens`),
+                ]);
+                const patientsData = await patientsRes.json();
+                const consultationsData = await consultationsRes.json();
+                const examensData = await examensRes.json();
+                // console.log({ patientsData, consultationsData, examensData });
 
-    const consultationsRecent = [
-        { patient: "Jean Dupont", heure: "09:00", medecin: "Dr. Martin", status: "completed" },
-        { patient: "Marie Dubois", heure: "10:30", medecin: "Dr. Laurent", status: "in-progress" },
-        { patient: "Ali Koné", heure: "11:45", medecin: "Dr. Traoré", status: "scheduled" },
-        { patient: "Sophie Martin", heure: "14:00", medecin: "Dr. Bernard", status: "scheduled" },
-        { patient: "Pierre Leroy", heure: "15:30", medecin: "Dr. Garcia", status: "scheduled" },
-    ];
+                // Statistiques
+                setStats({
+                    patients: patientsData.patient.length,
+                    consultations: consultationsData.consultations.length,
+                    examens: examensData.examens.length,
+                    rdvAujourdhui: consultationsData.consultations.filter((c: any) => {
+                        const today = new Date();
+                        const date = new Date(c.date);
+                        return (
+                            date.getDate() === today.getDate() &&
+                            date.getMonth() === today.getMonth() &&
+                            date.getFullYear() === today.getFullYear()
+                        );
+                    }).length,
+                    tauxRemplissage: Math.round((consultationsData.consultations.length / 100) * 100), // à adapter selon logique métier
+                    evolutionPatients: 0, // à calculer selon historique
+                    evolutionConsultations: 0, // à calculer selon historique
+                });
+
+                // Consultations récentes (exemple : les 5 dernières)
+                setConsultations(
+                    consultationsData.consultations
+                        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .slice(0, 5)
+                        .map((c: any) => ({
+                            patient: `${c.patientId?.nom || "?"} ${c.patientId?.prenom || ""}`,
+                            heure: c.date ? new Date(c.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+                            medecin: c.medecin || "",
+                            status: c.status || "scheduled",
+                        }))
+                );
+            } catch (err: any) {
+                setError("Erreur lors du chargement des données.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     type StatusKey = "completed" | "in-progress" | "scheduled";
 
@@ -66,6 +118,36 @@ export default function DashboardPage() {
             </span>
         );
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p className="mt-2 text-muted-foreground">Chargement des examens...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 max-w-md">
+                        <h3 className="font-semibold text-red-800">Erreur</h3>
+                        <p className="text-red-700 mt-1">{error}</p>
+                        <button
+                            className="mt-3 px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                            onClick={() => window.location.reload()}
+                        >
+                            Réessayer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -154,7 +236,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {consultationsRecent.map((consultation, index) => (
+                            {consultations.map((consultation, index) => (
                                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2 rounded-full ${consultation.status === "completed" ? "bg-green-100" :
@@ -194,26 +276,42 @@ export default function DashboardPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 gap-3">
-                            <Button variant="outline" className="h-16 flex flex-col gap-1">
+                            <Button
+                                variant="outline"
+                                className="h-16 flex flex-col gap-1 cursor-pointer"
+                                onClick={() => window.location.href = "/dashboard/patients"}
+                            >
                                 <Users className="h-5 w-5" />
                                 <span className="text-xs">Nouveau patient</span>
                             </Button>
-                            <Button variant="outline" className="h-16 flex flex-col gap-1">
+                            <Button
+                                variant="outline"
+                                className="h-16 flex flex-col gap-1 cursor-pointer"
+                                onClick={() => window.location.href = "/dashboard/appointments"}
+                            >
                                 <Calendar className="h-5 w-5" />
-                                <span className="text-xs">Prendre RDV</span>
+                                <span className="text-xs">Programmer un RDV</span>
                             </Button>
-                            <Button variant="outline" className="h-16 flex flex-col gap-1">
+                            <Button
+                                variant="outline"
+                                className="h-16 flex flex-col gap-1 cursor-pointer"
+                                onClick={() => window.location.href = "/dashboard/consultations"}
+                            >
                                 <FileText className="h-5 w-5" />
                                 <span className="text-xs">Nouvelle consultation</span>
                             </Button>
-                            <Button variant="outline" className="h-16 flex flex-col gap-1">
+                            <Button
+                                variant="outline"
+                                className="h-16 flex flex-col gap-1 cursor-pointer"
+                                onClick={() => window.location.href = "/dashboard/examens"}
+                            >
                                 <Stethoscope className="h-5 w-5" />
                                 <span className="text-xs">Ajouter examen</span>
                             </Button>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    {/* <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <AlertCircle className="h-5 w-5 text-amber-500" />
@@ -245,7 +343,7 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                         </CardContent>
-                    </Card>
+                    </Card> */}
                 </div>
             </div>
 
