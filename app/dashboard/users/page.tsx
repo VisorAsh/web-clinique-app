@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Table,
     TableBody,
@@ -13,61 +13,22 @@ import {
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, Mail, Phone, Briefcase } from "lucide-react";
+import { Search, User, Mail, Phone, Briefcase, Loader2 } from "lucide-react";
 
-// Données mockées pour les utilisateurs
-const users = [
-    {
-        _id: "1",
-        nom: "Martin",
-        prenom: "Sophie",
-        email: "sophie.martin@clinique-totsi.com",
-        specialite: "Cardiologie",
-        tel: "+33 6 12 34 56 78",
-        dateEmbauche: "2020-03-15",
-        autorisation: true
-    },
-    {
-        _id: "2",
-        nom: "Dubois",
-        prenom: "Pierre",
-        email: "pierre.dubois@clinique-totsi.com",
-        specialite: "Pédiatrie",
-        tel: "+33 6 23 45 67 89",
-        dateEmbauche: "2021-06-10",
-        autorisation: true
-    },
-    {
-        _id: "3",
-        nom: "Bernard",
-        prenom: "Lucie",
-        email: "lucie.bernard@clinique-totsi.com",
-        specialite: "Radiologie",
-        tel: "+33 6 34 56 78 90",
-        dateEmbauche: "2022-01-20",
-        autorisation: true
-    },
-    {
-        _id: "4",
-        nom: "Garcia",
-        prenom: "Thomas",
-        email: "thomas.garcia@clinique-totsi.com",
-        specialite: "Chirurgie",
-        tel: "+33 6 45 67 89 01",
-        dateEmbauche: "2023-08-05",
-        autorisation: false
-    },
-    {
-        _id: "5",
-        nom: "Leroy",
-        prenom: "Alice",
-        email: "alice.leroy@clinique-totsi.com",
-        specialite: "Dermatologie",
-        tel: "+33 6 56 78 90 12",
-        dateEmbauche: "2024-02-15",
-        autorisation: true
-    }
-];
+// Interface pour les données utilisateur
+interface UserData {
+    _id: string;
+    nom: string;
+    prenom: string;
+    email: string;
+    password: string;
+    specialite: string;
+    adresse: string;
+    tel: string;
+    dateEmbauche: string;
+    autorisation: boolean;
+    __v?: number;
+}
 
 const specialiteOptions = [
     "Cardiologie",
@@ -83,6 +44,40 @@ const specialiteOptions = [
 export default function UsersPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedSpecialite, setSelectedSpecialite] = useState("all");
+    const [users, setUsers] = useState<UserData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Récupération des utilisateurs depuis l'API
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                setLoading(true);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+                const response = await fetch(`${apiUrl}/get-all-user`);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.message === "ok" && data.users) {
+                    // console.log("Données utilisateurs trouvées:", data.users);
+                    setUsers(data.users);
+                } else {
+                    throw new Error("Données utilisateurs non trouvées");
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Une erreur est survenue");
+                console.error("Erreur lors de la récupération des utilisateurs:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUsers();
+    }, []);
 
     const filteredUsers = users.filter(user => {
         const matchesSearch =
@@ -102,15 +97,38 @@ export default function UsersPage() {
             <Badge variant="secondary">Désactivé</Badge>;
     };
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p className="mt-2 text-muted-foreground">Chargement des utilisateurs...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 max-w-md">
+                        <h3 className="font-semibold text-red-800">Erreur</h3>
+                        <p className="text-red-700 mt-1">{error}</p>
+                        <button
+                            className="mt-3 px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                            onClick={() => window.location.reload()}
+                        >
+                            Réessayer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
-            {/* <div>
-                <h2 className="text-3xl font-bold tracking-tight">Utilisateurs</h2>
-                <p className="text-muted-foreground">
-                    Liste du personnel médical et administratif
-                </p>
-            </div> */}
-
             {/* Filtres et recherche */}
             <Card>
                 <CardContent className="">
@@ -199,9 +217,15 @@ export default function UsersPage() {
                         </TableBody>
                     </Table>
 
-                    {filteredUsers.length === 0 && (
+                    {filteredUsers.length === 0 && users.length > 0 && (
                         <div className="text-center py-8 text-muted-foreground">
-                            <p>Aucun utilisateur trouvé</p>
+                            <p>Aucun utilisateur ne correspond à votre recherche</p>
+                        </div>
+                    )}
+
+                    {users.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                            <p>Aucun utilisateur trouvé dans la base de données</p>
                         </div>
                     )}
                 </CardContent>

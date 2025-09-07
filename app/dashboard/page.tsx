@@ -16,6 +16,15 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
+    // Si l'utilisateur n'est pas connecté, il retourne sur la page de login
+    if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "/auth/login";
+            return null;
+        }
+    }
+
     // Données mockées pour les statistiques
     const stats = {
         patients: 124,

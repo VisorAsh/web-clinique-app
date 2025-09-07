@@ -44,9 +44,19 @@ export default function DashboardLayout({
     const router = useRouter();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [userData, setUserData] = useState<any>(null);
 
     useEffect(() => {
         setMounted(true);
+        // Récupérer les données utilisateur depuis le localStorage
+        const userString = localStorage.getItem("user");
+        if (userString) {
+            try {
+                setUserData(JSON.parse(userString));
+            } catch (error) {
+                console.error("Erreur lors de la lecture des données utilisateur:", error);
+            }
+        }
     }, []);
 
     const handleLogout = () => {
@@ -121,6 +131,21 @@ export default function DashboardLayout({
                             );
                         })}
                     </nav>
+
+                    {/* Section utilisateur connecté */}
+                    {userData && (
+                        <div className="pt-4 border-t border-blue-500">
+                            <div className="flex items-center gap-3 p-3 bg-blue-500/20 rounded-lg mb-4">
+                                <div className="bg-white/20 p-2 rounded-full">
+                                    <User className="h-6 w-6 text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{userData.prenom} {userData.nom}</p>
+                                    <p className="text-sm text-white/80 truncate">{userData.specialite}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="p-4 border-t border-blue-500">
                         <Button
@@ -206,7 +231,7 @@ export default function DashboardLayout({
                             <p className="text-sm text-gray-600 mt-2">Dernière mise à jour: {new Date().toLocaleTimeString()}</p>
                         </div> */}
 
-                        {/* <div className="text-center md:text-right">
+                    {/* <div className="text-center md:text-right">
                             <h3 className="font-semibold text-gray-800 mb-2">Support</h3>
                             <p className="text-sm text-gray-600">Besoin d'aide ? Contactez notre équipe</p>
                             <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row gap-2 justify-center md:justify-end mt-2">

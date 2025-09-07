@@ -1,40 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, MapPin, Briefcase, Calendar, Shield, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Phone, MapPin, Briefcase, Calendar, Shield, Eye, EyeOff, Loader2 } from "lucide-react";
 
-// Données mockées de l'utilisateur connecté
-const userData = {
-    _id: "1",
-    nom: "Martin",
-    prenom: "Sophie",
-    email: "sophie.martin@clinique-totsi.com",
-    specialite: "Cardiologie",
-    adresse: "123 Rue de la Médecine, 75000 Paris",
-    tel: "+33 6 12 34 56 78",
-    dateEmbauche: "2020-03-15",
-    autorisation: true
-};
+// Interface pour les données utilisateur
+interface UserData {
+    _id: string;
+    nom: string;
+    prenom: string;
+    email: string;
+    password: string;
+    specialite: string;
+    adresse: string;
+    tel: string;
+    dateEmbauche: string;
+    autorisation: boolean;
+    __v?: number;
+}
 
 export default function ProfilePage() {
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [userData, setUserData] = useState<UserData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Récupération des données utilisateur depuis le localStorage
+    useEffect(() => {
+        const fetchUserData = () => {
+            try {
+                setLoading(true);
+
+                // Récupération des données utilisateur depuis le localStorage
+                const userString = localStorage.getItem("user");
+
+                if (!userString) {
+                    throw new Error("Aucune donnée utilisateur trouvée dans le localStorage");
+                }
+
+                const user = JSON.parse(userString);
+                // console.log("Données utilisateur récupérées:", user);
+                setUserData(user);
+
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la récupération des données");
+                console.error("Erreur lors de la récupération des données:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserData();
+    }, []);
 
     // Formatage de la date d'embauche
-    const formattedDateEmbauche = new Date(userData.dateEmbauche).toLocaleDateString('fr-FR', {
+    const formattedDateEmbauche = userData ? new Date(userData.dateEmbauche).toLocaleDateString('fr-FR', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
-    });
+    }) : '';
 
     // Calcul de l'ancienneté
     const calculateAnciennete = (dateEmbauche: string) => {
@@ -49,17 +82,51 @@ export default function ProfilePage() {
         return `${years} ans et ${months} mois`;
     };
 
-    const anciennete = calculateAnciennete(userData.dateEmbauche);
+    const anciennete = userData ? calculateAnciennete(userData.dateEmbauche) : '';
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p className="mt-2 text-muted-foreground">Chargement des informations...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 max-w-md">
+                        <h3 className="font-semibold text-red-800">Erreur</h3>
+                        <p className="text-red-700 mt-1">{error}</p>
+                        <Button
+                            variant="outline"
+                            className="mt-3"
+                            onClick={() => window.location.reload()}
+                        >
+                            Réessayer
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!userData) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <p className="text-muted-foreground">Aucune donnée utilisateur disponible</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
-            {/* <div>
-                <h2 className="text-3xl font-bold tracking-tight">Mon Profil</h2>
-                <p className="text-muted-foreground">
-                    Gérez vos informations personnelles et votre mot de passe
-                </p>
-            </div> */}
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Informations personnelles */}
                 <Card>
