@@ -260,9 +260,9 @@ export default function DashboardPage() {
                                 </div>
                             ))}
                         </div>
-                        <Button variant="outline" className="w-full mt-4">
+                        {/* <Button variant="outline" className="w-full mt-4">
                             Voir tout l'agenda
-                        </Button>
+                        </Button> */}
                     </CardContent>
                 </Card>
 

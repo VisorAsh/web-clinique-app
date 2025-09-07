@@ -1,5 +1,6 @@
 "use client";
 
+// import type { Metadata } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,12 @@ const menuItems = [
     { name: "Utilisateurs", href: "/dashboard/users", icon: UserCog },
     { name: "Profil", href: "/dashboard/profil", icon: User },
 ];
+
+// metadata (Not in "use client component")
+// export const metadata: Metadata = {
+//     title: "Dashboard - Clinique de Totsi",
+//     description: "Tableau de bord de la Clinique de Totsi",
+// };
 
 export default function DashboardLayout({
     children,
@@ -99,7 +106,7 @@ export default function DashboardLayout({
                 <div className="flex flex-col flex-1">
                     <Link
                         href="/"
-                        className="flex justify-center items-center py-6 px-4 border-b border-blue-500 bg-gray-50 w-[90%] mx-auto rounded-lg mt-2"
+                        className="flex justify-center items-center py-6 px-2 border-b border-blue-500 bg-gray-50 w-[90%] mx-auto rounded-lg mt-3"
                         onClick={() => setIsMobileMenuOpen(false)}
                     >
                         <img
