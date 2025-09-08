@@ -26,11 +26,10 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-
 const menuItems = [
     { name: "Accueil", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Consultations", href: "/dashboard/consultations", icon: Stethoscope },
     { name: "Patients", href: "/dashboard/patients", icon: Users },
+    { name: "Consultations", href: "/dashboard/consultations", icon: Stethoscope },
     { name: "Examens", href: "/dashboard/examens", icon: FileText },
     { name: "Utilisateurs", href: "/dashboard/users", icon: UserCog },
     { name: "Profil", href: "/dashboard/profil", icon: User },

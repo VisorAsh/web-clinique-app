@@ -265,25 +265,33 @@ export default function ConsultationDetailsPage() {
                                 <p>{consultation.traitement}</p>
                             </div>
 
-                            <Separator />
 
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                                    Médicaments
-                                </h3>
-                                <ul className="list-disc list-inside space-y-1 mt-2">
-                                    {consultation.medicaments.map((med, index) => (
-                                        <li key={index} className="text-sm">{med}</li>
-                                    ))}
-                                </ul>
-                            </div>
+                            {
+                                consultation.medicaments.length > 0 && (
+                                    <div className="space-y-4">
+                                        <Separator />
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                                            Médicaments
+                                        </h3>
+                                        <ul className="list-disc list-inside space-y-1 mt-2">
+                                            {consultation.medicaments.map((med, index) => (
+                                                <li key={index} className="text-sm">{med}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )
+                            }
 
-                            <Separator />
 
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-1">Instructions</h3>
-                                <p className="text-sm">{consultation.instructions}</p>
-                            </div>
+                            {
+                                consultation.instructions && (
+                                    <div className="space-y-4">
+                                        <Separator />
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Instructions</h3>
+                                        <p className="text-sm">{consultation.instructions}</p>
+                                    </div>
+                                )
+                            }
                         </CardContent>
                     </Card>
 
@@ -379,7 +387,7 @@ export default function ConsultationDetailsPage() {
 
                     {/* Antécédents et allergies */}
                     <Card>
-                        <CardHeader className="pb-3">
+                        <CardHeader className="">
                             <CardTitle>Antécédents médicaux</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">

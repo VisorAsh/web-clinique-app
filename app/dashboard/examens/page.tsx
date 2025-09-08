@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Eye, Calendar, User, FileText, Download, Stethoscope, Microscope, Loader2 } from "lucide-react";
-import { stat } from "fs";
 
 // Interface pour les données d'examen
 interface Examen {
@@ -54,14 +53,14 @@ interface Examen {
     specialite: string;
     typeExamen: string;
     dateExamen: string;
-    resultatExamen: string;
+    resulatExamen: string;
     fichierUrl?: string;
     __v: number;
 }
 
 const typeExamenOptions = [
     { value: "all", label: "Tous les types" },
-    { value: "Analyse", label: "Analyses" },
+    { value: "Analyse", label: "Analyse" },
     { value: "Radiographie", label: "Radiographie" },
     { value: "Échographie", label: "Échographie" },
     { value: "Scanner", label: "Scanner" },
@@ -88,66 +87,165 @@ export default function ExamensPage() {
     const [examens, setExamens] = useState<Examen[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [creating, setCreating] = useState(false);
+    const [patients, setPatients] = useState<any[]>([]);
+    const [formData, setFormData] = useState({
+        patientId: "",
+        typeExamen: "",
+        medecin: "",
+        specialite: "",
+        dateExamen: "",
+        resulatExamen: "",
+        fichierUrl: ""
+    });
 
     // Récupération des examens depuis l'API
-    useEffect(() => {
-        const fetchExamens = async () => {
-            try {
-                setLoading(true);
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
-                const response = await fetch(`${apiUrl}/get-all-examens`);
+    const fetchExamens = async () => {
+        try {
+            setLoading(true);
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+            const response = await fetch(`${apiUrl}/get-all-examens`);
 
-                if (!response.ok) {
-                    throw new Error(`Erreur HTTP: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data.message === "Examens médicaux récupérés avec succès !" && data.examens) {
-                    setExamens(data.examens);
-                } else {
-                    throw new Error("Données examens non trouvées");
-                }
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Une erreur est survenue");
-                console.error("Erreur lors de la récupération des examens:", err);
-            } finally {
-                setLoading(false);
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
             }
-        };
 
+            const data = await response.json();
+
+            if (data.message === "Examens médicaux récupérés avec succès !" && data.examens) {
+                setExamens(data.examens);
+            } else {
+                throw new Error("Données examens non trouvées");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Une erreur est survenue");
+            console.error("Erreur lors de la récupération des examens:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Récupération des patients pour la sélection
+    const fetchPatients = async () => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+            const response = await fetch(`${apiUrl}/get-all-patient`);
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.message === "ok" && data.patient) {
+                    // console.log("Données patients reçues:", data.patient);
+                    setPatients(data.patient);
+                }
+            }
+        } catch (err) {
+            console.error("Erreur lors de la récupération des patients:", err);
+        }
+    };
+
+    useEffect(() => {
         fetchExamens();
+        fetchPatients();
     }, []);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [id]: value
+        }));
+    };
+
+    const handleSelectChange = (field: string, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        try {
+            setCreating(true);
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+
+            // Préparer les données pour l'API
+            const examenData = {
+                patientId: formData.patientId,
+                typeExamen: formData.typeExamen,
+                medecin: formData.medecin,
+                specialite: formData.specialite,
+                dateExamen: formData.dateExamen,
+                resulatExamen: formData.resulatExamen,
+                fichierUrl: formData.fichierUrl || ""
+            };
+
+            // console.log("1 ... Données à envoyer:", examenData);
+
+            const response = await fetch(`${apiUrl}/create-examen`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(examenData),
+            });
+
+            // console.log("2 ... Réponse de l'API:", response);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Erreur HTTP: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // console.log("3 ... Données reçues:", data);
+
+            if (data.message === "Examen médical crée avec succès !") {
+                // Réinitialiser le formulaire
+                setFormData({
+                    patientId: "",
+                    typeExamen: "",
+                    medecin: "",
+                    specialite: "",
+                    dateExamen: "",
+                    resulatExamen: "",
+                    fichierUrl: ""
+                });
+
+                // Fermer le dialog
+                setIsDialogOpen(false);
+
+                // Recharger la liste des examens
+                await fetchExamens();
+
+                // Afficher un message de succès
+                alert("Examen créé avec succès !");
+            } else {
+                throw new Error("Erreur lors de la création de l'examen");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la création");
+            console.error("Erreur lors de la création de l'examen:", err);
+            alert(`Erreur: ${err instanceof Error ? err.message : "Une erreur est survenue"}`);
+        } finally {
+            setCreating(false);
+        }
+    };
 
     const filteredExamens = examens.filter(examen => {
         const matchesSearch =
             examen.patientId.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
             examen.patientId.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
             examen.medecin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            examen.resultatExamen.toLowerCase().includes(searchTerm.toLowerCase());
+            examen.resulatExamen.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesType = selectedType === "all" || examen.typeExamen === selectedType;
         const matchesSpecialite = selectedSpecialite === "all" || examen.specialite === selectedSpecialite;
 
         return matchesSearch && matchesType && matchesSpecialite;
     });
-
-
-    type Status = "completed" | "pending" | "canceled";
-
-    const getStatusBadge = (status: Status) => {
-        const statusConfig: Record<Status, { label: string; variant: "default" | "secondary" | "outline" }> = {
-            completed: { label: "Terminé", variant: "default" },
-            pending: { label: "En attente", variant: "secondary" },
-            canceled: { label: "Annulé", variant: "outline" },
-        };
-
-        if (["completed", "pending", "canceled"].includes(status)) {
-            const config = statusConfig[status as Status];
-            return <Badge variant={config.variant}>{config.label}</Badge>;
-        }
-        return <Badge variant="outline">Inconnu</Badge>;
-    };
 
     const getTypeIcon = (type: string) => {
         return type === "Analyse" ?
@@ -188,15 +286,9 @@ export default function ExamensPage() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                {/* <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Examens médicaux</h2>
-                    <p className="text-muted-foreground">
-                        Gérez les examens et opérations des patients
-                    </p>
-                </div> */}
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button className="flex items-center gap-2">
+                        <Button className="flex items-center gap-2 cursor-pointer">
                             <Plus className="h-4 w-4" />
                             Nouvel examen
                         </Button>
@@ -209,84 +301,127 @@ export default function ExamensPage() {
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="grid grid-cols-1 gap-4 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="patient">Patient *</Label>
-                                    <Select>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Sélectionner un patient" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="1">Jean Dupont</SelectItem>
-                                            <SelectItem value="2">Marie Dubois</SelectItem>
-                                            <SelectItem value="3">Ali Koné</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                        <form onSubmit={handleSubmit}>
+                            <div className="grid grid-cols-1 gap-4 py-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="patientId">Patient *</Label>
+                                        <Select
+                                            value={formData.patientId}
+                                            onValueChange={(value) => handleSelectChange('patientId', value)}
+                                            required
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionner un patient" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {patients.map(patient => (
+                                                    <SelectItem key={patient._id} value={patient._id}>
+                                                        {patient.prenom} {patient.nom}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="typeExamen">Type d'examen *</Label>
+                                        <Select
+                                            value={formData.typeExamen}
+                                            onValueChange={(value) => handleSelectChange('typeExamen', value)}
+                                            required
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionner le type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {typeExamenOptions.map(type => (
+                                                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="typeExamen">Type d'examen *</Label>
-                                    <Select>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Sélectionner le type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {
-                                                specialiteOptions.map(spec => (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="medecin">Médecin *</Label>
+                                        <Input
+                                            id="medecin"
+                                            placeholder="Nom du médecin"
+                                            required
+                                            value={formData.medecin}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="specialite">Spécialité *</Label>
+                                        <Select
+                                            value={formData.specialite}
+                                            onValueChange={(value) => handleSelectChange('specialite', value)}
+                                            required
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionner une spécialité" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {specialiteOptions.map(spec => (
                                                     <SelectItem key={spec} value={spec}>{spec}</SelectItem>
-                                                ))
-                                            }
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="medecin">Médecin *</Label>
-                                    <Input id="medecin" placeholder="Nom du médecin" required />
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="specialite">Spécialité *</Label>
-                                    <Select>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Sélectionner une spécialité" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {specialiteOptions.map(spec => (
-                                                <SelectItem key={spec} value={spec}>{spec}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Label htmlFor="dateExamen">Date et heure *</Label>
+                                    <Input
+                                        id="dateExamen"
+                                        type="datetime-local"
+                                        required
+                                        value={formData.dateExamen}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="resulatExamen">Résultat *</Label>
+                                    <Input
+                                        id="resulatExamen"
+                                        placeholder="Résultat de l'examen"
+                                        required
+                                        value={formData.resulatExamen}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="fichier">Fichier joint</Label>
+                                    <Input
+                                        id="fichierUrl"
+                                        placeholder="URL du fichier (optionnel)"
+                                        value={formData.fichierUrl}
+                                        onChange={handleInputChange}
+                                    />
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="dateExamen">Date et heure *</Label>
-                                <Input id="dateExamen" type="datetime-local" required />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="resultatExamen">Résultat *</Label>
-                                <Input id="resultatExamen" placeholder="Résultat de l'examen" required />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="fichier">Fichier joint</Label>
-                                <Input id="fichier" type="file" />
-                            </div>
-                        </div>
-
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                                Annuler
-                            </Button>
-                            <Button type="submit">
-                                Enregistrer l'examen
-                            </Button>
-                        </DialogFooter>
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsDialogOpen(false)}
+                                    disabled={creating}
+                                    className="cursor-pointer"
+                                >
+                                    Annuler
+                                </Button>
+                                <Button type="submit" disabled={creating} className="cursor-pointer">
+                                    {creating ? "Création..." : "Enregistrer l'examen"}
+                                </Button>
+                            </DialogFooter>
+                        </form>
                     </DialogContent>
                 </Dialog>
             </div>
@@ -380,7 +515,7 @@ export default function ExamensPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="max-w-xs truncate">
-                                        {examen.resultatExamen}
+                                        {examen.resulatExamen}
                                     </TableCell>
                                     {/* <TableCell>
                                         {getStatusBadge(examen.status as Status)}

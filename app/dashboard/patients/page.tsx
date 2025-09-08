@@ -61,36 +61,176 @@ export default function PatientsPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [creating, setCreating] = useState(false);
+    const [formData, setFormData] = useState({
+        nom: "",
+        prenom: "",
+        birthDate: "",
+        telephone: "",
+        email: "",
+        gender: "",
+        // ref: ""
+    });
+    // État pour les contacts d'urgence (au moins 1 requis)
+    const [emergencyContacts, setEmergencyContacts] = useState([
+        { nom: "", prenom: "", relation: "", telephone: "" }
+    ]);
 
     // Récupération des patients depuis l'API
-    useEffect(() => {
-        const fetchPatients = async () => {
-            try {
-                setLoading(true);
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
-                const response = await fetch(`${apiUrl}/get-all-patient`);
+    const fetchPatients = async () => {
+        try {
+            setLoading(true);
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+            const response = await fetch(`${apiUrl}/get-all-patient`);
 
-                if (!response.ok) {
-                    throw new Error(`Erreur HTTP: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data.message === "ok" && data.patient) {
-                    setPatients(data.patient);
-                } else {
-                    throw new Error("Données patients non trouvées");
-                }
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Une erreur est survenue");
-                console.error("Erreur lors de la récupération des patients:", err);
-            } finally {
-                setLoading(false);
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
             }
-        };
 
+            const data = await response.json();
+
+            if (data.message === "ok" && data.patient) {
+                setPatients(data.patient);
+            } else {
+                throw new Error("Données patients non trouvées");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Une erreur est survenue");
+            console.error("Erreur lors de la récupération des patients:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchPatients();
     }, []);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [id]: value
+        }));
+    };
+
+    const handleSelectChange = (value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            gender: value
+        }));
+    };
+
+    // Gestion des changements pour les contacts d'urgence
+    const handleEmergencyContactChange = (index: number, field: string, value: string) => {
+        const updatedContacts = [...emergencyContacts];
+        updatedContacts[index] = {
+            ...updatedContacts[index],
+            [field]: value
+        };
+        setEmergencyContacts(updatedContacts);
+    };
+
+    // Ajouter un nouveau contact d'urgence
+    const addEmergencyContact = () => {
+        if (emergencyContacts.length < 2) {
+            setEmergencyContacts([...emergencyContacts, { nom: "", prenom: "", relation: "", telephone: "" }]);
+        }
+    };
+
+    // Supprimer un contact d'urgence
+    const removeEmergencyContact = (index: number) => {
+        if (emergencyContacts.length > 1) {
+            const updatedContacts = [...emergencyContacts];
+            updatedContacts.splice(index, 1);
+            setEmergencyContacts(updatedContacts);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Validation des contacts d'urgence
+        const hasEmptyContact = emergencyContacts.some(contact =>
+            !contact.nom || !contact.prenom || !contact.relation || !contact.telephone
+        );
+
+        if (hasEmptyContact) {
+            alert("Veuillez remplir tous les champs des contacts d'urgence");
+            return;
+        }
+
+        try {
+            setCreating(true);
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+
+            // Préparer les données pour l'API
+            const patientData = {
+                nom: formData.nom,
+                prenom: formData.prenom,
+                birthDate: formData.birthDate,
+                telephone: formData.telephone,
+                email: formData.email || undefined,
+                gender: formData.gender,
+                // ref: formData.ref || undefined,
+                emergencyContacts: emergencyContacts.filter(contact =>
+                    contact.nom && contact.prenom && contact.relation && contact.telephone
+                )
+            };
+
+            // console.log("1 .. Données du patient:", patientData);
+
+            const response = await fetch(`${apiUrl}/create-patient`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(patientData),
+            });
+
+            // console.log("2 .. Response de l'API:", response);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Erreur HTTP: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // console.log("3 .. Données du patient:", data);
+
+            if (data.message === "ok") {
+                // Réinitialiser le formulaire
+                setFormData({
+                    nom: "",
+                    prenom: "",
+                    birthDate: "",
+                    telephone: "",
+                    email: "",
+                    gender: "",
+                    // ref: ""
+                });
+                setEmergencyContacts([{ nom: "", prenom: "", relation: "", telephone: "" }]);
+
+                // Fermer le dialog
+                setIsDialogOpen(false);
+
+                // Recharger la liste des patients
+                await fetchPatients();
+
+                // Afficher un message de succès
+                alert("Patient créé avec succès !");
+            } else {
+                throw new Error("Erreur lors de la création du patient");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la création");
+            console.error("Erreur lors de la création du patient:", err);
+            alert(`Erreur: ${err instanceof Error ? err.message : "Une erreur est survenue"}`);
+        } finally {
+            setCreating(false);
+        }
+    };
 
     const filteredPatients = patients.filter(patient => {
         const matchesSearch =
@@ -187,60 +327,191 @@ export default function PatientsPage() {
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="nom">Nom *</Label>
-                                <Input id="nom" placeholder="Nom de famille" required />
+                        <form onSubmit={handleSubmit}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="nom">Nom *</Label>
+                                    <Input
+                                        id="nom"
+                                        placeholder="Nom de famille"
+                                        required
+                                        value={formData.nom}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="prenom">Prénom *</Label>
+                                    <Input
+                                        id="prenom"
+                                        placeholder="Prénom"
+                                        required
+                                        value={formData.prenom}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="birthDate">Date de naissance *</Label>
+                                    <Input
+                                        id="birthDate"
+                                        type="date"
+                                        required
+                                        value={formData.birthDate}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="gender">Genre *</Label>
+                                    <Select
+                                        value={formData.gender}
+                                        onValueChange={handleSelectChange}
+                                        required
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionner le genre" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {genderOptions.map(option => (
+                                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="telephone">Téléphone *</Label>
+                                    <Input
+                                        id="telephone"
+                                        placeholder="Numéro de téléphone"
+                                        required
+                                        value={formData.telephone}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="Adresse email"
+                                        value={formData.email}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                {/* <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="ref">Référence patient</Label>
+                                    <Input
+                                        id="ref"
+                                        placeholder="Référence unique (auto-générée si vide)"
+                                        value={formData.ref}
+                                        onChange={handleInputChange}
+                                    />
+                                </div> */}
+
+                                {/* Contacts d'urgence */}
+                                <div className="md:col-span-2 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <Label>Contacts d'urgence *</Label>
+                                        {emergencyContacts.length < 2 && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={addEmergencyContact}
+                                                className="flex items-center gap-1"
+                                            >
+                                                <Plus className="h-3 w-3" />
+                                                Ajouter un contact
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {emergencyContacts.map((contact, index) => (
+                                        <div key={index} className="p-4 border rounded-lg space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="font-medium">Contact {index + 1}</h4>
+                                                {emergencyContacts.length > 1 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => removeEmergencyContact(index)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                    >
+                                                        Supprimer
+                                                    </Button>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`emergency-nom-${index}`}>Nom *</Label>
+                                                    <Input
+                                                        id={`emergency-nom-${index}`}
+                                                        placeholder="Nom"
+                                                        required
+                                                        value={contact.nom}
+                                                        onChange={(e) => handleEmergencyContactChange(index, 'nom', e.target.value)}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`emergency-prenom-${index}`}>Prénom *</Label>
+                                                    <Input
+                                                        id={`emergency-prenom-${index}`}
+                                                        placeholder="Prénom"
+                                                        required
+                                                        value={contact.prenom}
+                                                        onChange={(e) => handleEmergencyContactChange(index, 'prenom', e.target.value)}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`emergency-relation-${index}`}>Relation *</Label>
+                                                    <Input
+                                                        id={`emergency-relation-${index}`}
+                                                        placeholder="Relation (épouse, frère, etc.)"
+                                                        required
+                                                        value={contact.relation}
+                                                        onChange={(e) => handleEmergencyContactChange(index, 'relation', e.target.value)}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`emergency-telephone-${index}`}>Téléphone *</Label>
+                                                    <Input
+                                                        id={`emergency-telephone-${index}`}
+                                                        placeholder="Numéro de téléphone"
+                                                        required
+                                                        value={contact.telephone}
+                                                        onChange={(e) => handleEmergencyContactChange(index, 'telephone', e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="prenom">Prénom *</Label>
-                                <Input id="prenom" placeholder="Prénom" required />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="birthDate">Date de naissance *</Label>
-                                <Input id="birthDate" type="date" required />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="gender">Genre *</Label>
-                                <Select>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner le genre" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {genderOptions.map(option => (
-                                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="telephone">Téléphone *</Label>
-                                <Input id="telephone" placeholder="Numéro de téléphone" required />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input id="email" type="email" placeholder="Adresse email" />
-                            </div>
-
-                            <div className="space-y-2 md:col-span-2">
-                                <Label htmlFor="ref">Référence patient</Label>
-                                <Input id="ref" placeholder="Référence unique (auto-générée si vide)" />
-                            </div>
-                        </div>
-
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                                Annuler
-                            </Button>
-                            <Button type="submit">
-                                Créer le patient
-                            </Button>
-                        </DialogFooter>
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsDialogOpen(false)}
+                                    disabled={creating}
+                                    className="cursor-pointer"
+                                >
+                                    Annuler
+                                </Button>
+                                <Button type="submit" disabled={creating} className="cursor-pointer">
+                                    {creating ? "Création..." : "Créer le patient"}
+                                </Button>
+                            </DialogFooter>
+                        </form>
                     </DialogContent>
                 </Dialog>
             </div>

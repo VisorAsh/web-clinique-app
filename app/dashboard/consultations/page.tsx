@@ -91,37 +91,187 @@ export default function ConsultationsPage() {
     const [consultations, setConsultations] = useState<Consultation[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [creating, setCreating] = useState(false);
+    const [patients, setPatients] = useState<any[]>([]);
+    const [formData, setFormData] = useState({
+        patientId: "",
+        date: new Date().toISOString().slice(0, 16),
+        motif: "",
+        diagnostic: "",
+        traitement: "",
+        medecin: "",
+        specialite: "",
+        tensionArterielle: "",
+        tauxGlycemie: "",
+        frequenceCardiaque: "",
+        poids: "",
+        temperature: "",
+        notes: "",
+        medicaments: "",
+        taille: "",
+        instructions: "",
+        allergies: "",
+        antecedentsMedicaux: "",
+        teleconsultation: "presentiel",
+        visioLink: "",
+    });
+
+    const fetchConsultations = async () => {
+        try {
+            setLoading(true);
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+            const response = await fetch(`${apiUrl}/get-all-consultations`);
+
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+
+            const data = await response.json();
+            // console.log("Données des consultations reçues:", data);
+
+            if (data.consultations) {
+                setConsultations(data.consultations);
+            } else {
+                throw new Error("Données consultations non trouvées");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Une erreur est survenue");
+            console.error("Erreur lors de la récupération des consultations:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Récupération des patients pour la sélection
+    const fetchPatients = async () => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+            const response = await fetch(`${apiUrl}/get-all-patient`);
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.message === "ok" && data.patient) {
+                    // console.log("Données patients reçues:", data.patient);
+                    setPatients(data.patient);
+                }
+            }
+        } catch (err) {
+            console.error("Erreur lors de la récupération des patients:", err);
+        }
+    };
 
     // Récupération des consultations depuis l'API
     useEffect(() => {
-        const fetchConsultations = async () => {
-            try {
-                setLoading(true);
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
-                const response = await fetch(`${apiUrl}/get-all-consultations`);
-
-                if (!response.ok) {
-                    throw new Error(`Erreur HTTP: ${response.status}`);
-                }
-
-                const data = await response.json();
-                // console.log("Données des consultations reçues:", data);
-
-                if (data.consultations) {
-                    setConsultations(data.consultations);
-                } else {
-                    throw new Error("Données consultations non trouvées");
-                }
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Une erreur est survenue");
-                console.error("Erreur lors de la récupération des consultations:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchConsultations();
+        fetchPatients();
     }, []);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleSelectChange = (id: string, value: string) => {
+        setFormData(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        try {
+            setCreating(true);
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api-clinique-app.vercel.app/api";
+
+            // Préparer les données pour l'API
+            const consultationData = {
+                patientId: formData.patientId,
+                date: new Date(formData.date),
+                motif: formData.motif,
+                diagnostic: formData.diagnostic,
+                traitement: formData.traitement,
+                medecin: formData.medecin,
+                specialite: formData.specialite,
+                tensionArterielle: formData.tensionArterielle,
+                tauxGlycemie: Number(formData.tauxGlycemie),
+                frequenceCardiaque: formData.frequenceCardiaque ? Number(formData.frequenceCardiaque) : undefined,
+                poids: Number(formData.poids),
+                temperature: Number(formData.temperature),
+                notes: formData.notes,
+                medicaments: formData.medicaments.split(',').map(m => m.trim()).filter(m => m),
+                taille: formData.taille ? Number(formData.taille) : undefined,
+                instructions: formData.instructions,
+                allergies: formData.allergies.split(',').map(a => a.trim()).filter(a => a),
+                antecedentsMedicaux: formData.antecedentsMedicaux.split(',').map(a => a.trim()).filter(a => a),
+                teleconsultation: formData.teleconsultation === "teleconsultation",
+                visioLink: formData.visioLink,
+                messages: []
+            };
+
+            // console.log("1 ... Données à envoyer:", consultationData);
+
+            const response = await fetch(`${apiUrl}/create-consultation`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(consultationData),
+            });
+
+            // console.log("2 ... Réponse de l'API:", response);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Erreur HTTP: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // console.log("3 ... Données reçues:", data);
+
+            if (data.message === "Consultation ajoutée avec succès !") {
+                // Réinitialiser le formulaire
+                setFormData({
+                    patientId: "",
+                    date: new Date().toISOString().slice(0, 16),
+                    motif: "",
+                    diagnostic: "",
+                    traitement: "",
+                    medecin: "",
+                    specialite: "",
+                    tensionArterielle: "",
+                    tauxGlycemie: "",
+                    frequenceCardiaque: "",
+                    poids: "",
+                    temperature: "",
+                    notes: "",
+                    medicaments: "",
+                    taille: "",
+                    instructions: "",
+                    allergies: "",
+                    antecedentsMedicaux: "",
+                    teleconsultation: "presentiel",
+                    visioLink: "",
+                });
+
+                // Fermer le dialog
+                setIsDialogOpen(false);
+
+                // Recharger la liste des consultations
+                await fetchConsultations();
+
+                // Afficher un message de succès
+                alert("Consultation créée avec succès !");
+            } else {
+                throw new Error("Erreur lors de la création de la consultation");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la création");
+            console.error("Erreur lors de la création de la consultation:", err);
+            alert(`Erreur: ${err instanceof Error ? err.message : "Une erreur est survenue"}`);
+        } finally {
+            setCreating(false);
+        }
+    };
 
     const filteredConsultations = consultations.filter(consultation => {
         const matchesSearch =
@@ -134,17 +284,6 @@ export default function ConsultationsPage() {
 
         return matchesSearch && matchesSpecialite;
     });
-
-    //   const getStatusBadge = (status: any) => {
-    //     const statusConfig = {
-    //       completed: { label: "Terminée", variant: "default" },
-    //       scheduled: { label: "Planifiée", variant: "secondary" },
-    //       pending: { label: "En attente", variant: "outline" },
-    //     };
-
-    //     const config = statusConfig[status] || { label: "Inconnu", variant: "outline" };
-    //     return <Badge variant={config.variant}>{config.label}</Badge>;
-    //   };
 
     const getTypeIcon = (type: string) => {
         return type === "Analyse" ?
@@ -185,12 +324,6 @@ export default function ConsultationsPage() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                {/* <div>
-          <h2 className="text-3xl font-bold tracking-tight">Consultations</h2>
-          <p className="text-muted-foreground">
-            Gérez les consultations de vos patients
-          </p>
-        </div> */}
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                         <Button className="flex items-center justify-end cursor-pointer">
@@ -206,149 +339,303 @@ export default function ConsultationsPage() {
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                            {/* Colonne 1 - Informations de base */}
-                            <div className="space-y-4">
-                                <h3 className="font-semibold">Informations générales</h3>
+                        <form onSubmit={handleSubmit}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+                                {/* Colonne 1 - Informations de base */}
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold">Informations générales</h3>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="patient">Patient</Label>
-                                    <Input id="patient" placeholder="Nom du patient" />
+                                    <div className="space-y-2">
+                                        <Label htmlFor="patientId">Patient *</Label>
+                                        <Select
+                                            value={formData.patientId}
+                                            onValueChange={(value) => handleSelectChange('patientId', value)}
+                                            required
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionner un patient" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {patients.map(patient => (
+                                                    <SelectItem key={patient._id} value={patient._id}>
+                                                        {patient.prenom} {patient.nom}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="date">
+                                            Date et heure <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="date"
+                                            type="datetime-local"
+                                            value={formData.date}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="motif">
+                                            Motif de consultation <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="motif"
+                                            placeholder="Raison de la visite"
+                                            value={formData.motif}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="medecin">
+                                            Médecin <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="medecin"
+                                            placeholder="Nom du médecin"
+                                            value={formData.medecin}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="specialite">
+                                            Spécialité <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Select
+                                            value={formData.specialite}
+                                            onValueChange={(value) => handleSelectChange("specialite", value)}
+                                            required
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionner une spécialité" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {specialites.map(spec => (
+                                                    <SelectItem key={spec} value={spec}>{spec}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="teleconsultation">Type de consultation</Label>
+                                        <Select
+                                            value={formData.teleconsultation}
+                                            onValueChange={(value) => handleSelectChange("teleconsultation", value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionner le type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="presentiel">Présentiel</SelectItem>
+                                                <SelectItem value="teleconsultation">Téléconsultation</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {formData.teleconsultation === "teleconsultation" && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="visioLink">Lien de visioconférence</Label>
+                                            <Input
+                                                id="visioLink"
+                                                placeholder="https://..."
+                                                value={formData.visioLink}
+                                                onChange={handleInputChange}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="date">Date et heure</Label>
-                                    <Input id="date" type="datetime-local" />
+                                {/* Colonne 2 - Informations médicales */}
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold">Données médicales</h3>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="poids">
+                                                Poids (kg) <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="poids"
+                                                type="number"
+                                                placeholder="70"
+                                                value={formData.poids}
+                                                onChange={handleInputChange}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="taille">Taille (cm)</Label>
+                                            <Input
+                                                id="taille"
+                                                type="number"
+                                                placeholder="175"
+                                                value={formData.taille}
+                                                onChange={handleInputChange}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="temperature">
+                                                Température (°C) <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="temperature"
+                                                type="number"
+                                                placeholder="37.2"
+                                                step="0.1"
+                                                value={formData.temperature}
+                                                onChange={handleInputChange}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="tensionArterielle">
+                                                Tension artérielle <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="tensionArterielle"
+                                                placeholder="120/80"
+                                                value={formData.tensionArterielle}
+                                                onChange={handleInputChange}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="tauxGlycemie">
+                                                Glycémie (mg/dL) <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="tauxGlycemie"
+                                                type="number"
+                                                placeholder="100"
+                                                value={formData.tauxGlycemie}
+                                                onChange={handleInputChange}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="frequenceCardiaque">Fréquence cardiaque</Label>
+                                            <Input
+                                                id="frequenceCardiaque"
+                                                type="number"
+                                                placeholder="72"
+                                                value={formData.frequenceCardiaque}
+                                                onChange={handleInputChange}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="allergies">Allergies</Label>
+                                        <Input
+                                            id="allergies"
+                                            placeholder="Liste des allergies (séparées par des virgules)"
+                                            value={formData.allergies}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="antecedentsMedicaux">Antécédents médicaux</Label>
+                                        <Textarea
+                                            id="antecedentsMedicaux"
+                                            placeholder="Antécédents du patient (séparés par des virgules)"
+                                            value={formData.antecedentsMedicaux}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="motif">Motif de consultation</Label>
-                                    <Input id="motif" placeholder="Raison de la visite" />
-                                </div>
+                                {/* Colonne pleine largeur pour les champs supplémentaires */}
+                                <div className="md:col-span-2 space-y-4">
+                                    <h3 className="font-semibold">Diagnostic et traitement</h3>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="medecin">Médecin</Label>
-                                    <Input id="medecin" placeholder="Nom du médecin" />
-                                </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="diagnostic">
+                                            Diagnostic <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Textarea
+                                            id="diagnostic"
+                                            placeholder="Diagnostic établi"
+                                            value={formData.diagnostic}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                    </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="specialite">Spécialité</Label>
-                                    <Select>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Sélectionner une spécialité" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {specialites.map(spec => (
-                                                <SelectItem key={spec} value={spec}>{spec}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="traitement">
+                                            Traitement prescrit <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Textarea
+                                            id="traitement"
+                                            placeholder="Traitement à suivre"
+                                            value={formData.traitement}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                    </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="teleconsultation">Type de consultation</Label>
-                                    <Select>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Sélectionner le type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="presentiel">Présentiel</SelectItem>
-                                            <SelectItem value="teleconsultation">Téléconsultation</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="medicaments">Médicaments</Label>
+                                        <Textarea
+                                            id="medicaments"
+                                            placeholder="Liste des médicaments prescrits (séparés par des virgules)"
+                                            value={formData.medicaments}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="instructions">Instructions</Label>
+                                        <Textarea
+                                            id="instructions"
+                                            placeholder="Instructions supplémentaires"
+                                            value={formData.instructions}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="notes">
+                                            Notes supplémentaires <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Textarea
+                                            id="notes"
+                                            placeholder="Observations et remarques"
+                                            value={formData.notes}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Colonne 2 - Informations médicales */}
-                            <div className="space-y-4">
-                                <h3 className="font-semibold">Données médicales</h3>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="poids">Poids (kg)</Label>
-                                        <Input id="poids" type="number" placeholder="70" />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="taille">Taille (cm)</Label>
-                                        <Input id="taille" type="number" placeholder="175" />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="temperature">Température (°C)</Label>
-                                        <Input id="temperature" type="number" placeholder="37.2" step="0.1" />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="tension">Tension artérielle</Label>
-                                        <Input id="tension" placeholder="120/80" />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="glycemie">Glycémie (mg/dL)</Label>
-                                        <Input id="glycemie" type="number" placeholder="100" />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="frequence">Fréquence cardiaque</Label>
-                                        <Input id="frequence" type="number" placeholder="72" />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="allergies">Allergies</Label>
-                                    <Input id="allergies" placeholder="Liste des allergies" />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="antecedents">Antécédents médicaux</Label>
-                                    <Textarea id="antecedents" placeholder="Antécédents du patient" />
-                                </div>
-                            </div>
-
-                            {/* Colonne pleine largeur pour les champs supplémentaires */}
-                            <div className="md:col-span-2 space-y-4">
-                                <h3 className="font-semibold">Diagnostic et traitement</h3>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="diagnostic">Diagnostic</Label>
-                                    <Textarea id="diagnostic" placeholder="Diagnostic établi" />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="traitement">Traitement prescrit</Label>
-                                    <Textarea id="traitement" placeholder="Traitement à suivre" />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="medicaments">Médicaments</Label>
-                                    <Textarea id="medicaments" placeholder="Liste des médicaments prescrits" />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="instructions">Instructions</Label>
-                                    <Textarea id="instructions" placeholder="Instructions supplémentaires" />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="notes">Notes supplémentaires</Label>
-                                    <Textarea id="notes" placeholder="Observations et remarques" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                                Annuler
-                            </Button>
-                            <Button type="submit">
-                                Créer la consultation
-                            </Button>
-                        </DialogFooter>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsDialogOpen(false)} type="button" className="cursor-pointer">
+                                    Annuler
+                                </Button>
+                                <Button type="submit" disabled={creating} className="cursor-pointer">
+                                    {creating ? "Création..." : "Créer la consultation"}
+                                </Button>
+                            </DialogFooter>
+                        </form>
                     </DialogContent>
                 </Dialog>
             </div>
@@ -429,9 +716,6 @@ export default function ConsultationsPage() {
                                     <TableCell>
                                         <Badge variant="secondary">{consultation.specialite}</Badge>
                                     </TableCell>
-                                    {/* <TableCell>
-                    {getStatusBadge(consultation.status)}
-                  </TableCell> */}
                                     <TableCell className="">
                                         <Button variant="ghost" size="sm" asChild>
                                             <Link href={`/dashboard/consultations/${consultation._id}`}>
@@ -445,9 +729,9 @@ export default function ConsultationsPage() {
                         </TableBody>
                     </Table>
 
-                     {filteredConsultations.length === 0 && consultations.length > 0 && (
+                    {filteredConsultations.length === 0 && consultations.length > 0 && (
                         <div className="text-center py-8 text-muted-foreground">
-                        <p>Aucune consultation ne correspond à votre recherche</p>
+                            <p>Aucune consultation ne correspond à votre recherche</p>
                         </div>
                     )}
 
