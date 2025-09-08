@@ -14,7 +14,8 @@ import {
     User,
     LogOut,
     Menu,
-    X
+    X,
+    Calendar
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -31,6 +32,7 @@ const menuItems = [
     { name: "Patients", href: "/dashboard/patients", icon: Users },
     { name: "Consultations", href: "/dashboard/consultations", icon: Stethoscope },
     { name: "Examens", href: "/dashboard/examens", icon: FileText },
+    { name: "Rendez-vous", href: "/dashboard/rendez-vous", icon: Calendar },
     { name: "Utilisateurs", href: "/dashboard/users", icon: UserCog },
     { name: "Profil", href: "/dashboard/profil", icon: User },
 ];

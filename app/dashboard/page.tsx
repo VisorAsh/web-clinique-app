@@ -46,14 +46,16 @@ export default function DashboardPage() {
             setLoading(true);
             setError(null);
             try {
-                const [patientsRes, consultationsRes, examensRes] = await Promise.all([
+                const [patientsRes, consultationsRes, examensRes, rendezVousRes] = await Promise.all([
                     fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-all-patient`),
                     fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-all-consultations`),
                     fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-all-examens`),
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-all-rendezvous`),
                 ]);
                 const patientsData = await patientsRes.json();
                 const consultationsData = await consultationsRes.json();
                 const examensData = await examensRes.json();
+                const rendezVousData = await rendezVousRes.json();
                 // console.log({ patientsData, consultationsData, examensData });
 
                 // Statistiques
@@ -61,15 +63,7 @@ export default function DashboardPage() {
                     patients: patientsData.patient.length,
                     consultations: consultationsData.consultations.length,
                     examens: examensData.examens.length,
-                    rdvAujourdhui: consultationsData.consultations.filter((c: any) => {
-                        const today = new Date();
-                        const date = new Date(c.date);
-                        return (
-                            date.getDate() === today.getDate() &&
-                            date.getMonth() === today.getMonth() &&
-                            date.getFullYear() === today.getFullYear()
-                        );
-                    }).length,
+                    rdvAujourdhui: rendezVousData.rendezvous.length,
                     tauxRemplissage: Math.round((consultationsData.consultations.length / 100) * 100), // à adapter selon logique métier
                     evolutionPatients: 0, // à calculer selon historique
                     evolutionConsultations: 0, // à calculer selon historique
@@ -287,7 +281,7 @@ export default function DashboardPage() {
                             <Button
                                 variant="outline"
                                 className="h-16 flex flex-col gap-1 cursor-pointer"
-                                onClick={() => window.location.href = "/dashboard/appointments"}
+                                onClick={() => window.location.href = "/dashboard/rendez-vous"}
                             >
                                 <Calendar className="h-5 w-5" />
                                 <span className="text-xs">Programmer un RDV</span>
